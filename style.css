@@ -2,47 +2,36 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Roboto", sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
-body,
-html {
-  width: 100%;
+body, html {
   height: 100%;
-  overflow: hidden;
+  width: 100%;
 }
 
 #map {
   height: 100vh;
-  width: 100vw;
-  z-index: 1;
+  width: 100%;
+  z-index: 0;
 }
 
+/* === Toggle Buttons === */
 .toggle-btn {
-  position: fixed;
-  right: 20px;
-  background-color: white;
+  position: absolute;
+  right: 10px;
+  background: white;
   border: none;
-  border-radius: 50%;
   padding: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
   cursor: pointer;
-  z-index: 999;
-  width: 50px;
-  height: 50px;
+  z-index: 1001;
+  transition: transform 0.2s ease;
 }
 
-.toggle-btn img {
-  width: 24px;
-  height: 24px;
-}
-
-#location-toggle {
-  bottom: 110px;
-}
-
-#direction-toggle {
-  bottom: 50px;
+.toggle-btn:hover {
+  transform: scale(1.1);
 }
 
 #search-toggle {
@@ -50,92 +39,98 @@ html {
   transform: translateY(-50%);
 }
 
+#location-toggle {
+  bottom: 90px;
+}
+
+#direction-toggle {
+  bottom: 30px;
+}
+
+/* === Panels === */
 .panel {
-  position: fixed;
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  position: absolute;
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  width: 270px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  z-index: 1002;
+  transition: all 0.3s ease;
 }
 
 #search-panel {
-  right: 80px;
+  right: 70px;
   top: 50%;
   transform: translateY(-50%);
-  width: 250px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 #direction-panel {
-  top: 40px;
   left: 50%;
   transform: translateX(-50%);
-  width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  top: 15px;
 }
 
-input[type="text"] {
+/* === Panel Elements === */
+.panel input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.panel button {
+  margin-top: 10px;
   width: 100%;
   padding: 10px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  outline: none;
-  transition: border 0.2s;
-}
-
-input[type="text"]:focus {
-  border: 1.5px solid #1e88e5;
-}
-
-button {
-  padding: 10px;
-  font-size: 14px;
-  border: none;
-  border-radius: 10px;
-  background-color: #1e88e5;
+  background-color: #007bff;
   color: white;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-button:hover {
-  background-color: #1565c0;
-}
-
-.close-btn {
-  background: transparent;
   border: none;
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  font-size: 14px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
-.close-btn img {
-  width: 16px;
-  height: 16px;
+.panel button:hover {
+  background-color: #0056b3;
 }
 
-.hidden {
-  display: none !important;
+/* === Close Button === */
+.close-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
-@media (max-width: 768px) {
-  #search-panel,
-  #direction-panel {
-    width: 85%;
-    right: 10px;
-    left: 10px;
-    transform: none;
+/* === Autocomplete Suggestions (for leaflet-control-geocoder) === */
+.leaflet-control-geocoder-form input {
+  border-radius: 8px !important;
+  font-size: 14px !important;
+}
+
+/* === Responsive === */
+@media screen and (max-width: 600px) {
+  .panel {
+    width: 90%;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 20px !important;
   }
 
-  .toggle-btn {
+  #search-panel {
+    right: auto;
+  }
+
+  #direction-panel {
+    top: 80px;
+  }
+
+  #search-toggle, #direction-toggle, #location-toggle {
     right: 10px;
   }
 }
