@@ -1,74 +1,141 @@
-// script.js
-let map = L.map('map').setView([25.276987, 51.520008], 13); // Fake Qatar location
-let fakeMarker = L.marker([25.276987, 51.520008], { icon: L.icon({ iconUrl: 'assets/blue-marker.png', iconSize: [32, 32] }) }).addTo(map);
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Roboto", sans-serif;
+}
 
-let currentLocationMarker;
-let searchMarker;
-let directionLayer;
+body,
+html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
 
-L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=YOUR_MAPTILER_API_KEY', {
-  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>',
-  tileSize: 512,
-  zoomOffset: -1
-}).addTo(map);
+#map {
+  height: 100vh;
+  width: 100vw;
+  z-index: 1;
+}
 
-// Remove marker on double click
-fakeMarker.on('dblclick', () => map.removeLayer(fakeMarker));
+.toggle-btn {
+  position: fixed;
+  right: 20px;
+  background-color: white;
+  border: none;
+  border-radius: 50%;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 999;
+  width: 50px;
+  height: 50px;
+}
 
-// Toggle Panels
-const hidePanel = (id) => document.getElementById(id).style.display = 'none';
-document.getElementById('search-toggle').onclick = () => document.getElementById('search-panel').style.display = 'block';
-document.getElementById('direction-toggle').onclick = () => document.getElementById('direction-panel').style.display = 'block';
-document.getElementById('location-toggle').onclick = () => {
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    if (currentLocationMarker) map.removeLayer(currentLocationMarker);
-    currentLocationMarker = L.marker([latitude, longitude], {
-      icon: L.icon({ iconUrl: 'assets/live-location.png', iconSize: [32, 32] })
-    }).addTo(map);
-    map.setView([latitude, longitude], 14);
-  });
-};
+.toggle-btn img {
+  width: 24px;
+  height: 24px;
+}
 
-const searchControl = L.esri.Geocoding.geosearch({ placeholder: "Search..." }).addTo(map);
-const results = L.layerGroup().addTo(map);
-searchControl.on("results", function(data) {
-  results.clearLayers();
-  if (data.results.length > 0) {
-    const { latlng } = data.results[0];
-    if (searchMarker) map.removeLayer(searchMarker);
-    searchMarker = L.marker(latlng, { icon: L.icon({ iconUrl: 'assets/red-marker.png', iconSize: [32, 32] }) }).addTo(map);
-    map.setView(latlng, 14);
-    if (fakeMarker) map.removeLayer(fakeMarker);
+#location-toggle {
+  bottom: 110px;
+}
+
+#direction-toggle {
+  bottom: 50px;
+}
+
+#search-toggle {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.panel {
+  position: fixed;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+#search-panel {
+  right: 80px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#direction-panel {
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  outline: none;
+  transition: border 0.2s;
+}
+
+input[type="text"]:focus {
+  border: 1.5px solid #1e88e5;
+}
+
+button {
+  padding: 10px;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  background-color: #1e88e5;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background-color: #1565c0;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  cursor: pointer;
+}
+
+.close-btn img {
+  width: 16px;
+  height: 16px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  #search-panel,
+  #direction-panel {
+    width: 85%;
+    right: 10px;
+    left: 10px;
+    transform: none;
   }
-});
 
-// Direction
-let control;
-document.getElementById('getDirection').onclick = () => {
-  const start = document.getElementById('start').value;
-  const end = document.getElementById('end').value;
-  if (control) map.removeControl(control);
-  control = L.Routing.control({
-    waypoints: [],
-    routeWhileDragging: false,
-    show: false,
-    createMarker: function(i, wp) {
-      return L.marker(wp.latLng, {
-        icon: L.icon({ iconUrl: i === 0 ? 'assets/live-location.png' : 'assets/red-marker.png', iconSize: [32, 32] })
-      });
-    }
-  }).addTo(map);
-
-  L.esri.Geocoding.geocode().text(start).run(function(err, resStart) {
-    if (resStart.results.length > 0) {
-      L.esri.Geocoding.geocode().text(end).run(function(err, resEnd) {
-        if (resEnd.results.length > 0) {
-          const startLatLng = resStart.results[0].latlng;
-          const endLatLng = resEnd.results[0].latlng;
-          control.setWaypoints([startLatLng, endLatLng]);
-        }
-      });
-    }
-  });
-};
+  .toggle-btn {
+    right: 10px;
+  }
+}
