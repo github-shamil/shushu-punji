@@ -1,136 +1,96 @@
-* {
+body, html {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
+  height: 100%;
+  width: 100%;
   font-family: 'Roboto', sans-serif;
 }
 
-body, html {
+#map {
   height: 100%;
   width: 100%;
-}
-
-#map {
-  height: 100vh;
-  width: 100%;
-  z-index: 0;
-}
-
-/* === Toggle Buttons === */
-.toggle-btn {
   position: absolute;
-  right: 10px;
+}
+
+.icon-btn {
+  position: absolute;
   background: white;
   border: none;
   padding: 10px;
   border-radius: 50%;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   cursor: pointer;
-  z-index: 1001;
-  transition: transform 0.2s ease;
-}
-
-.toggle-btn:hover {
-  transform: scale(1.1);
+  z-index: 999;
 }
 
 #search-toggle {
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-#location-toggle {
-  bottom: 90px;
+  right: 20px;
+  top: 45%;
 }
 
 #direction-toggle {
-  bottom: 30px;
+  right: 20px;
+  bottom: 100px;
 }
 
-/* === Panels === */
+#location-toggle {
+  right: 20px;
+  bottom: 160px;
+}
+
 .panel {
   position: absolute;
   background: white;
-  border-radius: 12px;
-  padding: 12px;
-  width: 270px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  z-index: 1002;
-  transition: all 0.3s ease;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 1000;
+  width: 280px;
+  max-width: 90%;
 }
 
 #search-panel {
+  top: 40%;
   right: 70px;
-  top: 50%;
-  transform: translateY(-50%);
 }
 
 #direction-panel {
+  top: 10%;
   left: 50%;
   transform: translateX(-50%);
-  top: 15px;
 }
 
-/* === Panel Elements === */
-.panel input {
+.hidden {
+  display: none;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  float: right;
+  cursor: pointer;
+}
+
+input {
+  display: block;
   width: 100%;
-  margin-top: 8px;
-  padding: 8px 10px;
+  padding: 10px;
+  margin: 8px 0;
   border: 1px solid #ccc;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 14px;
 }
 
-.panel button {
-  margin-top: 10px;
-  width: 100%;
-  padding: 10px;
+button {
+  padding: 10px 15px;
   background-color: #007bff;
   color: white;
   border: none;
+  border-radius: 6px;
+  cursor: pointer;
   font-size: 14px;
-  border-radius: 8px;
-  cursor: pointer;
 }
 
-.panel button:hover {
+button:hover {
   background-color: #0056b3;
-}
-
-/* === Close Button === */
-.close-btn {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-/* === Autocomplete Suggestions (for leaflet-control-geocoder) === */
-.leaflet-control-geocoder-form input {
-  border-radius: 8px !important;
-  font-size: 14px !important;
-}
-
-/* === Responsive === */
-@media screen and (max-width: 600px) {
-  .panel {
-    width: 90%;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 20px !important;
-  }
-
-  #search-panel {
-    right: auto;
-  }
-
-  #direction-panel {
-    top: 80px;
-  }
-
-  #search-toggle, #direction-toggle, #location-toggle {
-    right: 10px;
-  }
 }

@@ -12,15 +12,15 @@
 <body>
   <div id="map"></div>
 
-  <!-- UI Icons -->
+  <!-- Icons -->
   <button class="icon-btn" id="location-toggle">
-    <img src="assets/location-icon.svg" alt="My Location">
+    <img src="assets/location-icon.svg" alt="My Location" />
   </button>
   <button class="icon-btn" id="direction-toggle">
-    <img src="assets/direction-icon.svg" alt="Direction">
+    <img src="assets/direction-icon.svg" alt="Directions" />
   </button>
   <button class="icon-btn" id="search-toggle">
-    <img src="assets/search-icon.svg" alt="Search">
+    <img src="assets/search-icon.svg" alt="Search" />
   </button>
 
   <!-- Search Panel -->
@@ -28,7 +28,8 @@
     <button class="close-btn" onclick="hidePanel('search-panel')">
       <img src="assets/close-icon.svg" alt="Close" />
     </button>
-    <input type="text" id="searchInput" placeholder="Search place..." />
+    <input id="searchBox" type="text" placeholder="Search place..." />
+    <div id="searchSuggestions"></div>
     <button id="searchBtn">Search</button>
   </div>
 
@@ -37,15 +38,15 @@
     <button class="close-btn" onclick="hidePanel('direction-panel')">
       <img src="assets/close-icon.svg" alt="Close" />
     </button>
-    <input type="text" id="start" placeholder="Start location" />
-    <input type="text" id="end" placeholder="Destination" />
+    <input id="start" type="text" placeholder="Start location" />
+    <input id="end" type="text" placeholder="Destination" />
+    <div id="directionSuggestions"></div>
     <button id="getDirection">Get Direction</button>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.min.js"></script>
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
   <script src="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.js"></script>
   <script src="script.js"></script>
 </body>

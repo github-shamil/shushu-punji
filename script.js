@@ -1,123 +1,93 @@
-// === Map Setup ===
-const map = L.map('map').setView([25.276987, 55.296249], 13); // Fake location: Dubai
+let map = L.map("map").setView([25.276987, 51.520008], 13);
+let fakeMarker = L.marker([25.276987, 51.520008], { draggable: false }).addTo(map);
 
-L.tileLayer(`https://api.maptiler.com/maps/streets/256/{z}/{x}/{y}.png?key=YOUR_MAPTILER_API_KEY`, {
-  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>',
-  tileSize: 512,
-  zoomOffset: -1,
+L.tileLayer("https://api.maptiler.com/maps/streets/256/{z}/{x}/{y}.png?key=YOUR_MAPTILER_API_KEY", {
+  attribution: '&copy; MapTiler',
 }).addTo(map);
 
-// === Icons ===
-const blueMarker = L.icon({
-  iconUrl: 'assets/live-location.svg',
-  iconSize: [30, 30],
+document.getElementById("search-toggle").onclick = () =>
+  document.getElementById("search-panel").classList.toggle("hidden");
+document.getElementById("direction-toggle").onclick = () =>
+  document.getElementById("direction-panel").classList.toggle("hidden");
+document.getElementById("location-toggle").onclick = showCurrentLocation;
+
+function hidePanel(id) {
+  document.getElementById(id).classList.add("hidden");
+}
+
+function showCurrentLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      const latlng = [position.coords.latitude, position.coords.longitude];
+      L.marker(latlng, {
+        icon: L.icon({
+          iconUrl: "assets/live-location.svg",
+          iconSize: [20, 20],
+        }),
+      }).addTo(map);
+      map.setView(latlng, 14);
+    });
+  }
+}
+
+// Search box autocomplete (basic logic)
+const places = ["Kannur", "Kochi", "Qatar", "Dubai", "Doha", "Trivandrum", "Mumbai", "Delhi"];
+const searchInput = document.getElementById("searchBox");
+const searchSuggestions = document.getElementById("searchSuggestions");
+searchInput.addEventListener("input", () => {
+  const val = searchInput.value.toLowerCase();
+  searchSuggestions.innerHTML = "";
+  if (val.length > 1) {
+    places
+      .filter((p) => p.toLowerCase().startsWith(val))
+      .forEach((p) => {
+        const div = document.createElement("div");
+        div.textContent = p;
+        div.style.cursor = "pointer";
+        div.onclick = () => {
+          searchInput.value = p;
+          searchSuggestions.innerHTML = "";
+        };
+        searchSuggestions.appendChild(div);
+      });
+  }
 });
 
-const redMarker = L.icon({
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-red.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-
-// === Fake Marker (blue) ===
-let fakeMarker = L.marker([25.276987, 55.296249], { icon: blueMarker }).addTo(map);
-fakeMarker.on('dblclick', () => {
-  map.removeLayer(fakeMarker);
-});
-
-// === Search Feature ===
-let searchInput = document.getElementById('searchBox');
-let searchPanel = document.getElementById('search-panel');
-let searchToggle = document.getElementById('search-toggle');
-let directionToggle = document.getElementById('direction-toggle');
-let locationToggle = document.getElementById('location-toggle');
-let directionPanel = document.getElementById('direction-panel');
-
-let suggestionTimeout;
-searchInput.addEventListener('input', () => {
-  clearTimeout(suggestionTimeout);
-  suggestionTimeout = setTimeout(() => {
-    const query = searchInput.value.trim();
-    if (query.length > 2) {
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data[0]) searchInput.value = data[0].display_name;
-        });
+document.getElementById("searchBtn").onclick = () => {
+  const query = searchInput.value;
+  L.Control.Geocoder.nominatim().geocode(query, function (results) {
+    if (results.length > 0) {
+      const latlng = results[0].center;
+      map.setView(latlng, 13);
+      fakeMarker.setLatLng(latlng);
     }
-  }, 500);
-});
+  });
+};
 
-document.getElementById('search-panel').querySelector('button').addEventListener('click', () => {
-  const query = searchInput.value.trim();
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data[0]) {
-        const latlng = [data[0].lat, data[0].lon];
-        map.setView(latlng, 14);
-        if (fakeMarker) fakeMarker.setLatLng(latlng);
-        else fakeMarker = L.marker(latlng, { icon: blueMarker }).addTo(map);
+// Direction logic
+const directionStart = document.getElementById("start");
+const directionEnd = document.getElementById("end");
+document.getElementById("getDirection").onclick = () => {
+  const start = directionStart.value;
+  const end = directionEnd.value;
+  if (start && end) {
+    L.Control.Geocoder.nominatim().geocode(start, function (startResults) {
+      if (startResults.length > 0) {
+        const startLatLng = startResults[0].center;
+        L.Control.Geocoder.nominatim().geocode(end, function (endResults) {
+          if (endResults.length > 0) {
+            const endLatLng = endResults[0].center;
+            L.Routing.control({
+              waypoints: [L.latLng(startLatLng), L.latLng(endLatLng)],
+              routeWhileDragging: false,
+            }).addTo(map);
+            L.marker(startLatLng, {
+              icon: L.icon({ iconUrl: "assets/live-location.svg", iconSize: [20, 20] })
+            }).addTo(map);
+            L.marker(endLatLng).addTo(map);
+          }
+        });
       }
     });
-});
-
-// === Direction ===
-let routeBtn = document.getElementById('getDirection');
-let startInput = document.getElementById('start');
-let endInput = document.getElementById('end');
-let routingControl;
-
-routeBtn.addEventListener('click', () => {
-  const start = startInput.value.trim();
-  const end = endInput.value.trim();
-
-  if (!start || !end) return;
-
-  Promise.all([
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${start}`).then(res => res.json()),
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${end}`).then(res => res.json())
-  ]).then(([startData, endData]) => {
-    if (!startData[0] || !endData[0]) return;
-
-    const startCoords = [startData[0].lat, startData[0].lon];
-    const endCoords = [endData[0].lat, endData[0].lon];
-
-    if (routingControl) map.removeControl(routingControl);
-
-    routingControl = L.Routing.control({
-      waypoints: [
-        L.latLng(startCoords),
-        L.latLng(endCoords),
-      ],
-      createMarker: (i, wp) => {
-        return L.marker(wp.latLng, { icon: i === 0 ? blueMarker : redMarker });
-      },
-      routeWhileDragging: false,
-    }).addTo(map);
-  });
-});
-
-// === Toggle Controls ===
-searchToggle.addEventListener('click', () => {
-  searchPanel.classList.toggle('hidden');
-});
-
-directionToggle.addEventListener('click', () => {
-  directionPanel.classList.toggle('hidden');
-});
-
-locationToggle.addEventListener('click', () => {
-  if (!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    const latlng = [latitude, longitude];
-    L.marker(latlng, { icon: blueMarker }).addTo(map).bindPopup('Your Location').openPopup();
-    map.setView(latlng, 14);
-  });
-});
-
-// === Hide Panels ===
-function hidePanel(id) {
-  document.getElementById(id).classList.add('hidden');
-}
+  }
+};
