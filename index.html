@@ -1,46 +1,43 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fake Location Tracker</title>
   <link rel="stylesheet" href="style.css" />
-  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
-  <link href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" rel="stylesheet"/>
-  <link href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="map"></div>
 
-  <!-- Floating Buttons -->
-  <div class="button-panel">
-    <button id="search-toggle"><img src="assets/search-icon.svg" alt="Search"></button>
-    <button id="locate-toggle"><img src="assets/location-icon.svg" alt="Locate"></button>
-    <button id="direction-toggle"><img src="assets/direction-icon.svg" alt="Direction"></button>
-  </div>
+  <!-- UI Buttons -->
+  <button class="toggle-btn" id="search-toggle"><img src="assets/search-icon.svg" alt="Search" /></button>
+  <button class="toggle-btn" id="location-toggle"><img src="assets/location-icon.svg" alt="Locate" /></button>
+  <button class="toggle-btn" id="direction-toggle"><img src="assets/direction-icon.svg" alt="Direction" /></button>
 
   <!-- Search Panel -->
   <div class="panel" id="search-panel">
-    <button class="close-btn" onclick="hidePanel('search-panel')"><img src="assets/close-icon.svg" alt="Close"></button>
+    <button class="close-btn" onclick="hidePanel('search-panel')"><img src="assets/close-icon.svg" alt="Close" /></button>
     <input type="text" id="searchBox" placeholder="Search place..." />
-    <ul id="searchSuggestions"></ul>
     <button id="searchBtn">Search</button>
   </div>
 
   <!-- Direction Panel -->
   <div class="panel" id="direction-panel">
-    <button class="close-btn" onclick="hidePanel('direction-panel')"><img src="assets/close-icon.svg" alt="Close"></button>
-    <input type="text" id="start" placeholder="Your location or start..." />
-    <input type="text" id="end" placeholder="Destination..." />
-    <ul id="startSuggestions"></ul>
-    <ul id="endSuggestions"></ul>
+    <button class="close-btn" onclick="hidePanel('direction-panel')"><img src="assets/close-icon.svg" alt="Close" /></button>
+    <input type="text" id="start" placeholder="Start location" />
+    <input type="text" id="end" placeholder="Destination" />
     <button id="getDirection">Get Direction</button>
   </div>
 
-  <!-- Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.min.js"></script>
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script src="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
