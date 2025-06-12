@@ -6,23 +6,13 @@
   <title>Fake Location Tracker</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+  <link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.css" />
 </head>
 <body>
   <div id="map"></div>
 
-  <!-- Buttons -->
   <button class="toggle-btn" id="location-toggle">
     <img src="assets/location-icon.svg" alt="Location" />
   </button>
@@ -33,16 +23,14 @@
     <img src="assets/search-icon.svg" alt="Search" />
   </button>
 
-  <!-- Search Panel -->
   <div class="panel" id="search-panel">
     <button class="close-btn" onclick="hidePanel('search-panel')">
       <img src="assets/close-icon.svg" alt="Close" />
     </button>
     <input type="text" id="searchBox" placeholder="Search place..." />
-    <button id="searchButton">Search</button>
+    <button id="searchBtn">Search</button>
   </div>
 
-  <!-- Direction Panel -->
   <div class="panel" id="direction-panel">
     <button class="close-btn" onclick="hidePanel('direction-panel')">
       <img src="assets/close-icon.svg" alt="Close" />
@@ -52,11 +40,10 @@
     <button id="getDirection">Get Direction</button>
   </div>
 
-  <!-- Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.min.js"></script>
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script src="https://unpkg.com/esri-leaflet"></script>
+  <script src="https://unpkg.com/esri-leaflet-geocoder"></script>
   <script src="script.js"></script>
 </body>
 </html>
-
