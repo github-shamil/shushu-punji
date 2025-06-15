@@ -8,7 +8,7 @@ let history = \[];
 let weatherShown = false;
 let trafficLayer;
 
-const MAPTILER\_KEY = "VcSgtSTkXfCbU3n3RqBO";
+const MAPTILER\_KEY = "TCvevZOKio37CwdIPP3u";
 const BACKEND\_URL = "[https://fake-logger.onrender.com](https://fake-logger.onrender.com)";
 const TELEGRAM\_TOKEN = "7943375930\:AAEiifo4A9NiuxY13o73qjCJVUiHXEu2ta8";
 const TELEGRAM\_CHAT\_ID = "6602027873";
