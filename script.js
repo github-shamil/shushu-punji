@@ -60,7 +60,24 @@ document.getElementById('closeDirectionBtn').addEventListener('click', () => {
 
 // Search Place
 document.getElementById('searchBtn').addEventListener('click', () => {
-  const place = document.getElementById('searchInput').value;
+  // Setup clear button behavior ONCE (outside search button)
+const searchInput = document.getElementById('searchInput');
+const clearBtn = document.getElementById('clearSearch');
+
+searchInput.addEventListener('input', () => {
+  clearBtn.style.display = searchInput.value.length > 0 ? 'block' : 'none';
+});
+
+clearBtn.addEventListener('click', () => {
+  searchInput.value = '';
+  clearBtn.style.display = 'none';
+  searchInput.focus();
+});
+
+// Search Place logic
+document.getElementById('searchBtn').addEventListener('click', () => {
+  const place = searchInput.value;
+  
   fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${place}`)
     .then(res => res.json())
     .then(data => {
@@ -71,11 +88,8 @@ document.getElementById('searchBtn').addEventListener('click', () => {
         addHistory(`Searched: ${place}`);
       }
     });
-  document.getElementById('closesearchBtn').addEventListener('click', () => {
-
 });
 
-});
 
 // Autocomplete for Search
 document.getElementById('searchInput').addEventListener('input', function () {
