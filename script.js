@@ -90,21 +90,50 @@ enableAutocomplete("start", "startSuggestions");
 enableAutocomplete("end", "endSuggestions");
 
 // 📌 Search Place
-function searchPlace() {
+// 📌 Combined Search Place Function
+async function searchPlace() {
   const input = document.getElementById("searchBox");
-  const lat = input.dataset.lat;
-  const lon = input.dataset.lon;
-  if (!lat || !lon) return alert("Please select a place.");
-  if (fakeMarker) map.removeLayer(fakeMarker);
+  let lat = input.dataset.lat;
+  let lon = input.dataset.lon;
+
+  if (!lat || !lon) {
+    const query = input.value.trim();
+    if (!query) return alert("Please enter a place.");
+
+    try {
+      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lang=en`);
+      const data = await res.json();
+      if (data.features.length === 0) return alert("Place not found. Try again.");
+
+      const coords = data.features[0].geometry.coordinates;
+      lat = coords[1];
+      lon = coords[0];
+    } catch (err) {
+      return alert("Error fetching location. Check internet or try later.");
+    }
+  }
 
   const coords = [parseFloat(lat), parseFloat(lon)];
+  if (window.fakeMarker) map.removeLayer(fakeMarker);
+
   fakeMarker = L.marker(coords, {
     icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red.png' })
   }).addTo(map);
+
   map.setView(coords, 15);
-  fetchWeather(coords[0], coords[1]);
-  saveSearch(input.value);
+
+  if (typeof fetchWeather === "function") {
+    fetchWeather(coords[0], coords[1]);
+  }
+  
+  if (typeof saveSearch === "function") {
+    saveSearch(input.value);
+  }
+
+  input.dataset.lat = "";
+  input.dataset.lon = "";
 }
+
 
   // 🗺️ Update fake marker
   if (fakeMarker) map.removeLayer(fakeMarker);
