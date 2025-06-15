@@ -62,19 +62,26 @@ function enableAutocomplete(inputId, suggestionId) {
     const res = await fetch(`https://photon.komoot.io/api/?q=${query}&lang=en`);
     const data = await res.json();
     suggestionBox.innerHTML = "";
-    data.features.slice(0, 5).forEach((feature) => {
-      const div = document.createElement("div");
-      div.className = "suggestion";
-      div.textContent = feature.properties.name + ", " + feature.properties.country;
-      div.onclick = () => {
-        input.value = feature.properties.name;
-        input.dataset.lat = feature.geometry.coordinates[1];
-        input.dataset.lon = feature.geometry.coordinates[0];
-        suggestionBox.innerHTML = "";
-        saveSearch(input.value);
-      };
-      suggestionBox.appendChild(div);
-    });
+ data.features.slice(0, 5).forEach((feature) => {
+  const div = document.createElement("div");
+  div.className = "suggestion";
+  div.textContent = feature.properties.name + ", " + feature.properties.country;
+
+  function selectPlace() {
+    input.value = feature.properties.name;
+    input.dataset.lat = feature.geometry.coordinates[1];
+    input.dataset.lon = feature.geometry.coordinates[0];
+    suggestionBox.innerHTML = "";
+    input.blur();
+    saveSearch(input.value);
+  }
+
+  div.addEventListener("click", selectPlace);
+  div.addEventListener("touchstart", selectPlace);
+
+  suggestionBox.appendChild(div);
+});
+
   });
 }
 
@@ -83,13 +90,27 @@ enableAutocomplete("start", "startSuggestions");
 enableAutocomplete("end", "endSuggestions");
 
 // 📌 Search Place
-function searchPlace() {
+async function searchPlace() {
   const input = document.getElementById("searchBox");
-  const lat = input.dataset.lat;
-  const lon = input.dataset.lon;
-  if (!lat || !lon) return alert("Please select a place from suggestions.");
-  if (fakeMarker) map.removeLayer(fakeMarker);
+  let lat = input.dataset.lat;
+  let lon = input.dataset.lon;
 
+  // 🔍 If no suggestion clicked (manual input), fetch coords using Photon
+  if (!lat || !lon) {
+    const query = input.value.trim();
+    if (!query) return alert("Please enter a place.");
+
+    const res = await fetch(`https://photon.komoot.io/api/?q=${query}&lang=en`);
+    const data = await res.json();
+    if (data.features.length === 0) return alert("Place not found. Try again.");
+
+    const coords = data.features[0].geometry.coordinates;
+    lat = coords[1];
+    lon = coords[0];
+  }
+
+  // 🗺️ Update fake marker
+  if (fakeMarker) map.removeLayer(fakeMarker);
   const coords = [parseFloat(lat), parseFloat(lon)];
   fakeMarker = L.marker(coords, {
     icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red.png' })
@@ -99,27 +120,53 @@ function searchPlace() {
   saveSearch(input.value);
 }
 
+
 // 🛣️ Directions
-function getDirections() {
+async function getDirections() {
   const startInput = document.getElementById("start");
   const endInput = document.getElementById("end");
 
   let startCoords, endCoords;
 
+  // 🧭 Handle "My Location"
   if (startInput.value.toLowerCase() === "my location") {
     navigator.geolocation.getCurrentPosition((pos) => {
       startCoords = [pos.coords.latitude, pos.coords.longitude];
-      buildRoute(startCoords, getCoords(endInput));
-      fetchWeather(...startCoords);
+      handleEnd();
     });
   } else {
-    if (!startInput.dataset.lat || !endInput.dataset.lat) return alert("Select both places from suggestions.");
-    startCoords = getCoords(startInput);
-    endCoords = getCoords(endInput);
+    startCoords = await resolveCoords(startInput);
+    handleEnd();
+  }
+
+  async function handleEnd() {
+    endCoords = await resolveCoords(endInput);
+    if (!startCoords || !endCoords) return;
+
     buildRoute(startCoords, endCoords);
     fetchWeather(...endCoords);
   }
+
+  async function resolveCoords(input) {
+    if (input.dataset.lat && input.dataset.lon) {
+      return [parseFloat(input.dataset.lat), parseFloat(input.dataset.lon)];
+    }
+
+    const query = input.value.trim();
+    if (!query) return alert("Please enter both places.");
+    const res = await fetch(`https://photon.komoot.io/api/?q=${query}&lang=en`);
+    const data = await res.json();
+    if (data.features.length === 0) {
+      alert(`Place not found: ${query}`);
+      return null;
+    }
+    const coords = data.features[0].geometry.coordinates;
+    input.dataset.lat = coords[1];
+    input.dataset.lon = coords[0];
+    return [coords[1], coords[0]];
+  }
 }
+
 
 function buildRoute(startCoords, endCoords) {
   if (routingControl) map.removeControl(routingControl);
@@ -188,17 +235,29 @@ function renderHistory() {
 }
 renderHistory();
 
-// 🚦 Traffic Toggle
+// 🚦 Real TomTom Traffic Toggle
+let tomtomTraffic;
+
 document.getElementById("traffic-toggle").onclick = () => {
-  if (!trafficLayer) {
-    trafficLayer = L.tileLayer("https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", {
-      attribution: "Traffic View",
-      maxZoom: 20
-    }).addTo(map);
+  const apiKey = "a3vv3A6LAvqLAIKmknfwzSBXEjJOpXwu"; // ⬅️ Replace with your real key
+
+  if (!tomtomTraffic) {
+    tomtomTraffic = L.tileLayer(
+      `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${apiKey}`,
+      {
+        attribution: '&copy; <a href="https://www.tomtom.com/">TomTom</a>',
+        maxZoom: 20,
+        opacity: 0.7,
+      }
+    );
+    map.addLayer(tomtomTraffic);
   } else {
-    map.hasLayer(trafficLayer) ? map.removeLayer(trafficLayer) : map.addLayer(trafficLayer);
+    map.hasLayer(tomtomTraffic)
+      ? map.removeLayer(tomtomTraffic)
+      : map.addLayer(tomtomTraffic);
   }
 };
+
 
 // ⛅ Weather Toggle
 document.getElementById("weather-toggle").onclick = () => {
