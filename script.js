@@ -3,14 +3,15 @@ let map = L.map("map").setView([25.276987, 51.520008], 13);
 let fakeMarker, liveMarker, routingControl;
 let isStreet = true, trafficLayer = null;
 
-// 🗺️ Tile Layers
+// 🗺️ Tile Layers — FIXED: changed to 256 tiles to prevent white screen
 const streetLayer = L.tileLayer("https://api.maptiler.com/maps/basic-v2/256/{z}/{x}/{y}.png?key=VcSgtSTkXfCbU3n3RqBO", {
-  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>', maxZoom: 20
+  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>', maxZoom: 20, tileSize: 256, crossOrigin: true
 });
 const satelliteLayer = L.tileLayer("https://api.maptiler.com/maps/hybrid/256/{z}/{x}/{y}.jpg?key=VcSgtSTkXfCbU3n3RqBO", {
-  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>', maxZoom: 20
+  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>', maxZoom: 20, tileSize: 256, crossOrigin: true
 });
 streetLayer.addTo(map);
+
 
 // 🧭 Initial Fake Marker
 fakeMarker = L.marker([25.276987, 51.520008], {
