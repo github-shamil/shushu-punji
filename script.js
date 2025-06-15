@@ -12,7 +12,7 @@ let history = [];
 
 // 🔍 Autocomplete function
 async function fetchSuggestions(query) {
-  const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=YOUR_MAPTILER_API_KEY&language=en`);
+  const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=TCvevZOKio37CwdIPP3u&language=en`);
   const data = await res.json();
   return data.features;
 }
