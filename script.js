@@ -13,7 +13,6 @@ L.tileLayer(`https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${MAPTILE
 }).addTo(map);
 
 // Custom Icons
-const fakeMarkerIcon = L.icon({ iconUrl: 'assets/dark-mode-icon.svg', iconSize: [32, 32] });
 const fakeMarkerIcon = L.icon({ iconUrl: 'assets/fake-marker.png', iconSize: [32, 32] });
 const customStartIcon = L.icon({ iconUrl: 'assets/start-icon.png', iconSize: [32, 32] });
 const googleRedIcon = L.icon({ iconUrl: 'assets/red-marker.png', iconSize: [32, 32] });
