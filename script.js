@@ -1,11 +1,8 @@
-// Replace with your MapTiler key
-const MAPTILER_KEY = "TCvevZOKio37CwdIPP3u";
-
 
 const map = L.map('map').setView([25.276987, 55.296249], 13); // Fake location: Qatar
 
 // MapTiler tiles
-L.tileLayer(`https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=YOUR_MAPTILER_API_KEY`, {
+L.tileLayer(`https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=TCvevZOKio37CwdIPP3u`, {
   attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>',
 }).addTo(map);
 
