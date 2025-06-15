@@ -3,78 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fake Google Map Location Tracker</title>
+  <title>Fake Google Map Tracker</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
-  <script src="https://unpkg.com/esri-leaflet-geocoder@3.1.4/dist/esri-leaflet-geocoder.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder@3.1.4/dist/esri-leaflet-geocoder.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 </head>
 <body>
-
-  <!-- 🗺️ Map -->
   <div id="map"></div>
 
-  <!-- 🔍 Search Box -->
-  <div class="floating-search" id="search-bar">
-    <input type="text" id="searchInput" placeholder="Search a place..." autocomplete="off" />
-    <button class="search-btn" onclick="handleSearch()">Search</button>
-  </div>
-  <div class="suggestions" id="searchSuggestions"></div>
-
-  <!-- 🧭 Direction Box -->
-  <div class="panel" id="direction-panel">
-    <button class="close-btn" onclick="toggleDirectionPanel(false)">
-      <img src="assets/close-icon.svg" alt="Close" />
-    </button>
-    <input type="text" id="startInput" placeholder="Start Location" autocomplete="off" />
-    <div class="suggestions" id="startSuggestions"></div>
-    <input type="text" id="endInput" placeholder="Destination" autocomplete="off" />
-    <div class="suggestions" id="endSuggestions"></div>
-    <button class="search-btn" onclick="getDirection()">Get Direction</button>
+  <!-- Search Box -->
+  <div class="search-container" id="searchContainer">
+    <input type="text" id="searchInput" placeholder="Search a place..." />
+    <button id="searchBtn">Search</button>
   </div>
 
-  <!-- 📋 History Panel -->
-  <div class="panel" id="history-panel">
-    <button class="close-btn" onclick="toggleHistoryPanel(false)">
-      <img src="assets/close-icon.svg" alt="Close" />
-    </button>
-    <h3>Location History</h3>
-    <ul id="historyList"></ul>
+  <!-- Direction Box -->
+  <div class="direction-box hidden" id="directionBox">
+    <input type="text" id="startInput" placeholder="Start" />
+    <input type="text" id="endInput" placeholder="Destination" />
+    <button id="getDirectionBtn">Get Direction</button>
+    <button id="closeDirection">Close</button>
   </div>
 
-  <!-- ☁️ Weather Box -->
-  <div id="weather-box">
-    <div class="title">Weather Info</div>
-    <div class="condition">Loading...</div>
-    <div class="temp"></div>
+  <!-- Control Icons -->
+  <div class="icon-panel">
+    <img src="./assets/direction-icon.svg" id="directionIcon" title="Directions" />
+    <img src="./assets/locate-icon.png" id="locateBtn" title="Locate Me" />
+    <img src="./assets/traffic-icon.svg" title="Traffic (Not Implemented)" />
+    <img src="./assets/weather-icon.svg" title="Weather (Not Implemented)" />
+    <img src="./assets/history-icon.svg" id="toggleHistory" title="Toggle History" />
+    <img src="./assets/darkmode-icon.svg" id="toggleDark" title="Dark Mode" />
   </div>
 
-  <!-- 🧭 Floating Action Buttons -->
-  <div class="floating-buttons">
-    <button class="toggle-btn" onclick="toggleDirectionPanel(true)">
-      <img src="assets/direction-icon.svg" alt="Direction" />
-    </button>
-    <button class="toggle-btn" onclick="getLiveLocation()">
-      <img src="assets/live-location-icon.svg" alt="Locate Me" />
-    </button>
-    <button class="toggle-btn traffic-btn" onclick="toggleTrafficLayer()">
-      <img src="assets/traffic-icon.svg" alt="Traffic" />
-    </button>
-    <button class="toggle-btn weather-btn" onclick="toggleWeatherBox()">
-      <img src="assets/weather-icon.svg" alt="Weather" />
-    </button>
-    <button class="toggle-btn" onclick="toggleHistoryPanel()">
-      <img src="assets/history-icon.svg" alt="History" />
-    </button>
-    <button class="toggle-btn" onclick="toggleDarkMode()">
-      <img src="assets/dark-mode-icon.svg" alt="Dark Mode" />
-    </button>
-  </div>
+  <!-- History Panel -->
+  <div id="historyPanel" class="hidden"></div>
 
-  <!-- 🔁 Script -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.min.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
