@@ -46,7 +46,30 @@ html, body {
   padding: 8px 12px;
   cursor: pointer;
   font-weight: bold;
+}|
+.autocomplete-container {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: white;
+  border: 1px solid #ccc;
+  z-index: 999;
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 4px;
 }
+
+.autocomplete-container .suggestion {
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.autocomplete-container .suggestion:hover {
+  background-color: #f0f0f0;
+}
+
 
 /* 🧭 Direction Panel */
 #direction-panel {
