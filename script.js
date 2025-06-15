@@ -2,42 +2,165 @@
 const MAPTILER_KEY = "TCvevZOKio37CwdIPP3u";
 
 
-// Initial map center at fake location (Qatar)
-const map = L.map('map').setView([25.276987, 51.520008], 13);
+const map = L.map('map').setView([25.276987, 55.296249], 13); // Fake location: Qatar
 
-// Map layer
-L.tileLayer(`https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
-  attribution: '&copy; MapTiler & OpenStreetMap',
-  tileSize: 512,
-  zoomOffset: -1
+// MapTiler tiles
+L.tileLayer(`https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=YOUR_MAPTILER_API_KEY`, {
+  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>',
 }).addTo(map);
 
-// Custom Icons
-const fakeMarkerIcon = L.icon({ iconUrl: 'assets/fake-marker.png', iconSize: [32, 32] });
-const customStartIcon = L.icon({ iconUrl: 'assets/start-icon.png', iconSize: [32, 32] });
-const googleRedIcon = L.icon({ iconUrl: 'assets/red-marker.png', iconSize: [32, 32] });
-const currentLocationIcon = L.icon({ iconUrl: 'assets/current-location.png', iconSize: [32, 32] });
+let marker = L.marker([25.276987, 55.296249]).addTo(map).bindPopup("Fake Location: Qatar").openPopup();
+let routeControl = null;
+let history = [];
 
-// Add fake location marker
-let fakeMarker = L.marker([25.276987, 51.520008], { icon: fakeMarkerIcon }).addTo(map);
-
-// Remove fake marker on double click
-map.on('dblclick', () => map.removeLayer(fakeMarker));
-
-// Location history
-let locationHistory = [];
-
-function addHistory(entry) {
-  locationHistory.push(entry);
-  const item = document.createElement('li');
-  item.textContent = entry;
-  document.getElementById('historyList').appendChild(item);
+// 🔍 Autocomplete function
+async function fetchSuggestions(query) {
+  const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=YOUR_MAPTILER_API_KEY&language=en`);
+  const data = await res.json();
+  return data.features;
 }
 
-// Dark Mode
-document.getElementById('darkModeBtn').addEventListener('click', () => {
-  document.body.classList.toggle('dark-mode');
+function createSuggestionItem(feature, callback) {
+  const item = document.createElement('div');
+  item.classList.add('suggestion');
+  item.textContent = feature.place_name;
+  item.addEventListener('click', () => callback(feature));
+  return item;
+}
+
+// 📍 Search Box Logic
+const searchInput = document.getElementById("searchInput");
+const searchBtn = document.getElementById("searchBtn");
+const searchSuggestions = document.getElementById("searchSuggestions");
+
+searchInput.addEventListener("input", async () => {
+  const value = searchInput.value.trim();
+  searchSuggestions.innerHTML = "";
+  if (!value) return;
+
+  const results = await fetchSuggestions(value);
+  results.forEach(feature => {
+    const item = createSuggestionItem(feature, selected => {
+      moveToLocation(selected);
+      saveToHistory(selected);
+      searchInput.value = selected.place_name;
+      searchSuggestions.innerHTML = "";
+    });
+    searchSuggestions.appendChild(item);
+  });
 });
+
+searchBtn.addEventListener("click", async () => {
+  const value = searchInput.value.trim();
+  if (!value) return;
+  const results = await fetchSuggestions(value);
+  if (results.length > 0) {
+    moveToLocation(results[0]);
+    saveToHistory(results[0]);
+  }
+});
+
+function moveToLocation(feature) {
+  const [lon, lat] = feature.center;
+  if (marker) map.removeLayer(marker);
+  marker = L.marker([lat, lon]).addTo(map).bindPopup(feature.place_name).openPopup();
+  map.setView([lat, lon], 14);
+}
+
+function saveToHistory(feature) {
+  history.push(feature.place_name);
+  updateHistory();
+}
+
+function updateHistory() {
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+  history.slice(-10).reverse().forEach(item => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    list.appendChild(li);
+  });
+}
+
+// 🧭 Direction Panel Logic
+const fromInput = document.getElementById("fromInput");
+const toInput = document.getElementById("toInput");
+const fromSuggestions = document.getElementById("fromInputSuggestions");
+const toSuggestions = document.getElementById("toInputSuggestions");
+
+async function handleDirectionAutocomplete(inputEl, suggestionsEl, isFrom) {
+  const value = inputEl.value.trim();
+  suggestionsEl.innerHTML = "";
+  if (!value) return;
+
+  const results = await fetchSuggestions(value);
+  results.forEach(feature => {
+    const item = createSuggestionItem(feature, selected => {
+      inputEl.value = selected.place_name;
+      inputEl.dataset.lat = selected.center[1];
+      inputEl.dataset.lon = selected.center[0];
+      suggestionsEl.innerHTML = "";
+    });
+    suggestionsEl.appendChild(item);
+  });
+}
+
+fromInput.addEventListener("input", () => handleDirectionAutocomplete(fromInput, fromSuggestions, true));
+toInput.addEventListener("input", () => handleDirectionAutocomplete(toInput, toSuggestions, false));
+
+document.getElementById("directionBtn").addEventListener("click", () => {
+  const fromLat = parseFloat(fromInput.dataset.lat);
+  const fromLon = parseFloat(fromInput.dataset.lon);
+  const toLat = parseFloat(toInput.dataset.lat);
+  const toLon = parseFloat(toInput.dataset.lon);
+
+  if (routeControl) map.removeControl(routeControl);
+
+  routeControl = L.Routing.control({
+    waypoints: [
+      L.latLng(fromLat, fromLon),
+      L.latLng(toLat, toLon)
+    ],
+    routeWhileDragging: false
+  }).addTo(map);
+});
+
+document.getElementById("closeDirectionBtn").addEventListener("click", () => {
+  document.getElementById("direction-panel").style.display = "none";
+});
+
+// 📍 "Locate Me" Button
+document.getElementById("locateBtn").addEventListener("click", () => {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported!");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude, longitude } = pos.coords;
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([latitude, longitude]).addTo(map).bindPopup("Your Current Location").openPopup();
+    map.setView([latitude, longitude], 14);
+  }, () => {
+    alert("Permission denied or location unavailable.");
+  });
+});
+
+// 🕹️ Panel Toggles
+document.getElementById("directionToggleBtn").addEventListener("click", () => {
+  const panel = document.getElementById("direction-panel");
+  panel.style.display = (panel.style.display === "flex") ? "none" : "flex";
+});
+
+document.getElementById("historyToggleBtn").addEventListener("click", () => {
+  const panel = document.getElementById("history-panel");
+  panel.style.display = (panel.style.display === "block") ? "none" : "block";
+});
+
+// 🌗 Dark Mode
+document.getElementById("darkModeBtn").addEventListener("click", () => {
+  document.body.classList.toggle("dark-mode");
+});
+
 
 // Show/hide history
 document.getElementById('historyToggleBtn').addEventListener('click', () => {
