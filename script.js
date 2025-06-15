@@ -90,24 +90,26 @@ enableAutocomplete("start", "startSuggestions");
 enableAutocomplete("end", "endSuggestions");
 
 // 📌 Search Place
-async function searchPlace() {
+function searchPlace() {
   const input = document.getElementById("searchBox");
-  let lat = input.dataset.lat;
-  let lon = input.dataset.lon;
+  const lat = input.dataset.lat;
+  const lon = input.dataset.lon;
+  if (!lat || !lon) return alert("Please select a place from suggestions.");
+  if (fakeMarker) map.removeLayer(fakeMarker);
 
-  // 🔍 If no suggestion clicked (manual input), fetch coords using Photon
-  if (!lat || !lon) {
-    const query = input.value.trim();
-    if (!query) return alert("Please enter a place.");
-
-    const res = await fetch(`https://photon.komoot.io/api/?q=${query}&lang=en`);
+     const res = await fetch(`https://photon.komoot.io/api/?q=${query}&lang=en`);
     const data = await res.json();
     if (data.features.length === 0) return alert("Place not found. Try again.");
 
-    const coords = data.features[0].geometry.coordinates;
-    lat = coords[1];
-    lon = coords[0];
-  }
+
+  const coords = [parseFloat(lat), parseFloat(lon)];
+  fakeMarker = L.marker(coords, {
+    icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red.png' })
+  }).addTo(map);
+  map.setView(coords, 15);
+  fetchWeather(coords[0], coords[1]);
+  saveSearch(input.value);
+}
 
   // 🗺️ Update fake marker
   if (fakeMarker) map.removeLayer(fakeMarker);
