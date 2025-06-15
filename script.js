@@ -71,6 +71,10 @@ document.getElementById('searchBtn').addEventListener('click', () => {
         addHistory(`Searched: ${place}`);
       }
     });
+  document.getElementById('closesearchBtn').addEventListener('click', () => {
+
+});
+
 });
 
 // Autocomplete for Search
