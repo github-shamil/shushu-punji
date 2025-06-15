@@ -90,47 +90,54 @@ enableAutocomplete("searchBox", "searchSuggestions");
 enableAutocomplete("start", "startSuggestions");
 enableAutocomplete("end", "endSuggestions");
 
+
 // 📌 Search Place
-// 📌 Combined Search Place Function
+
 async function searchPlace() {
   const input = document.getElementById("searchBox");
   let lat = input.dataset.lat;
   let lon = input.dataset.lon;
 
-  if (!lat || !lon) {
+
+  if (!lat || !lon || isNaN(lat) || isNaN(lon)) {
     const query = input.value.trim();
     if (!query) return alert("Please enter a place.");
 
     try {
       const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lang=en`);
       const data = await res.json();
-      if (data.features.length === 0) return alert("Place not found. Try again.");
+      if (!data.features.length) return alert("Place not found.");
 
       const coords = data.features[0].geometry.coordinates;
       lat = coords[1];
       lon = coords[0];
-    } catch (err) {
-      return alert("Error fetching location. Check internet or try later.");
+
+     
+      input.dataset.lat = lat;
+      input.dataset.lon = lon;
+
+    } catch (e) {
+      return alert("Error loading place. Check your internet connection.");
     }
   }
 
-  const coords = [parseFloat(lat), parseFloat(lon)];
-  if (window.fakeMarker) map.removeLayer(fakeMarker);
+  const parsedLat = parseFloat(lat);
+  const parsedLon = parseFloat(lon);
+  if (isNaN(parsedLat) || isNaN(parsedLon)) {
+    return alert("Invalid coordinates.");
+  }
 
-  fakeMarker = L.marker(coords, {
+
+  if (window.fakeMarker) map.removeLayer(fakeMarker);
+  fakeMarker = L.marker([parsedLat, parsedLon], {
     icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red.png' })
   }).addTo(map);
+  map.setView([parsedLat, parsedLon], 15);
 
-  map.setView(coords, 15);
+  if (typeof fetchWeather === "function") fetchWeather(parsedLat, parsedLon);
+  if (typeof saveSearch === "function") saveSearch(input.value);
 
-  if (typeof fetchWeather === "function") {
-    fetchWeather(coords[0], coords[1]);
-  }
-  
-  if (typeof saveSearch === "function") {
-    saveSearch(input.value);
-  }
-
+ 
   input.dataset.lat = "";
   input.dataset.lon = "";
 }
