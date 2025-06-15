@@ -79,7 +79,11 @@ body, html {
   height: auto;
 }
 
-/* 🧭 Panel Styling */
+.toggle-btn.active {
+  background-color: #00c853;
+}
+
+/* 🧱 Panel Styling */
 .panel {
   position: fixed;
   background: white;
@@ -123,6 +127,15 @@ body, html {
   }
 }
 
+@media (max-width: 480px) {
+  .floating-search input {
+    width: 180px;
+  }
+  .floating-search .search-btn {
+    padding: 8px 12px;
+  }
+}
+
 input[type="text"] {
   padding: 10px;
   font-size: 14px;
@@ -154,21 +167,21 @@ input[type="text"] {
   width: 20px;
 }
 
-/* 🔽 Autocomplete Suggestions */
+/* 🕽️ Autocomplete Suggestions */
 .suggestions {
   border: 1px solid #ccc;
   border-radius: 8px;
   max-height: 150px;
   overflow-y: auto;
   background: white;
-  font-size: 14px;
+  font-size: 15px;
   z-index: 1002;
   position: relative;
 }
 
 .suggestion {
   padding: 12px 16px;
-  font-size: 16px;
+  font-size: 15px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
@@ -199,7 +212,8 @@ body.dark-mode {
 
 body.dark-mode .panel,
 body.dark-mode .floating-search,
-body.dark-mode .toggle-btn {
+body.dark-mode .toggle-btn,
+body.dark-mode #weather-box {
   background: #1e1e1e;
   color: white;
   box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
@@ -207,6 +221,13 @@ body.dark-mode .toggle-btn {
 
 body.dark-mode .suggestion:hover {
   background: #333;
+}
+
+body.dark-mode input[type="text"],
+body.dark-mode .floating-search input {
+  background-color: #2a2a2a;
+  border: 1px solid #555;
+  color: white;
 }
 
 /* 🚦 Traffic & Weather Buttons */
@@ -270,10 +291,4 @@ body.dark-mode .suggestion:hover {
 #weather-box .condition {
   text-transform: capitalize;
   margin-bottom: 4px;
-}
-
-body.dark-mode #weather-box {
-  background: #1e1e1e;
-  color: white;
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }
