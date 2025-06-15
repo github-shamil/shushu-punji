@@ -1,5 +1,5 @@
 // Replace with your MapTiler key
-const MAPTILER_KEY = "VcSgtSTkXfCbU3n3RqBO";
+const MAPTILER_KEY = "TCvevZOKio37CwdIPP3u";
 
 // Initial map center at fake location (Qatar)
 const map = L.map('map').setView([25.276987, 51.520008], 13);
