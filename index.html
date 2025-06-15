@@ -6,14 +6,8 @@
   <title>Realistic Fake Location Map</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="assets/fav.png" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
 </head>
 <body>
   <div id="map"></div>
@@ -27,43 +21,32 @@
   </div>
 
   <!-- Floating Search Box -->
-<div class="floating-search" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 6px;">
-  <div style="position: relative;">
-    <input type="text" id="searchInput" placeholder="Search a place..." style="
-      padding: 10px 35px 10px 12px;
-      font-size: 15px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      width: 240px;
-      outline: none;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    ">
+  <div class="floating-search" style="position: relative;">
+    <input id="searchInput" type="text" placeholder="Search..." style="padding-right: 28px;" />
     <button id="clearSearch" style="
+      display: none;
       position: absolute;
-      right: 10px;
+      right: 8px;
       top: 50%;
       transform: translateY(-50%);
-      border: none;
       background: transparent;
+      border: none;
       font-size: 18px;
       color: #888;
+      cursor: pointer;">&times;</button>
+    <div id="searchSuggestions" class="autocomplete-container"></div>
+    <button id="searchBtn" style="
+      margin-top: 8px;
+      padding: 10px 16px;
+      font-size: 15px;
+      border-radius: 8px;
+      border: none;
+      background-color: #4285f4;
+      color: white;
       cursor: pointer;
-      display: none;
-    ">&times;</button>
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    ">Search</button>
   </div>
-  <button id="searchBtn" style="
-    padding: 10px 16px;
-    font-size: 15px;
-    border-radius: 8px;
-    border: none;
-    background-color: #4285f4;
-    color: white;
-    cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-  ">Search</button>
-</div>
-
-
 
   <!-- Direction Panel -->
   <div id="direction-panel">
