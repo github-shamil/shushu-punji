@@ -1,25 +1,158 @@
+// 🌍 Map Initialization
 let map = L.map("map").setView([25.276987, 51.520008], 13);
-let fakeMarker, liveMarker, routingControl, walkPath = null;
+let fakeMarker, liveMarker, routingControl;
+let isStreet = true, trafficLayer = null;
 
-// MapTiler (English-only map)
-L.tileLayer("https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=VcSgtSTkXfCbU3n3RqBO", {
-  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>',
-  maxZoom: 20
-}).addTo(map);
+// 🗺️ Tile Layers
+const streetLayer = L.tileLayer("https://api.maptiler.com/maps/basic-v2/256/{z}/{x}/{y}.png?key=VcSgtSTkXfCbU3n3RqBO", {
+  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>', maxZoom: 20
+});
+const satelliteLayer = L.tileLayer("https://api.maptiler.com/maps/hybrid/256/{z}/{x}/{y}.jpg?key=VcSgtSTkXfCbU3n3RqBO", {
+  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a>', maxZoom: 20
+});
+streetLayer.addTo(map);
 
-// Initial fake marker (Qatar)
+// 🧭 Initial Fake Marker
 fakeMarker = L.marker([25.276987, 51.520008], {
   icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue.png' })
 }).addTo(map);
-
-// Remove fake marker on double click
 fakeMarker.on("dblclick", () => map.removeLayer(fakeMarker));
 
-// Toggle panels
-document.getElementById("search-toggle").onclick = () => togglePanel("search-panel");
-document.getElementById("direction-toggle").onclick = () => togglePanel("direction-panel");
+// 🌗 Dark Mode Toggle
+document.getElementById("theme-toggle").onclick = () => {
+  document.body.classList.toggle("dark-mode");
+  document.body.classList.toggle("light-mode");
+};
+
+// 🛰️ Layer Switch
+document.getElementById("layer-toggle").onclick = () => {
+  if (isStreet) {
+    map.removeLayer(streetLayer);
+    map.addLayer(satelliteLayer);
+  } else {
+    map.removeLayer(satelliteLayer);
+    map.addLayer(streetLayer);
+  }
+  isStreet = !isStreet;
+};
+
+// 📍 My Live Location
 document.getElementById("location-toggle").onclick = () =>
   navigator.geolocation.getCurrentPosition(showLiveLocation, () => alert("Location access denied"));
+
+function showLiveLocation(position) {
+  const coords = [position.coords.latitude, position.coords.longitude];
+  if (liveMarker) map.removeLayer(liveMarker);
+  liveMarker = L.marker(coords, {
+    icon: L.icon({ iconUrl: "assets/live-location.svg", iconSize: [32, 32] })
+  }).addTo(map);
+  map.setView(coords, 15);
+  fetchWeather(coords[0], coords[1]);
+}
+
+// 🔍 Autocomplete for Inputs
+function enableAutocomplete(inputId, suggestionId) {
+  const input = document.getElementById(inputId);
+  const suggestionBox = document.getElementById(suggestionId);
+
+  input.addEventListener("input", async () => {
+    const query = input.value.trim();
+    if (!query) return (suggestionBox.innerHTML = "");
+
+    const res = await fetch(`https://photon.komoot.io/api/?q=${query}&lang=en`);
+    const data = await res.json();
+    suggestionBox.innerHTML = "";
+    data.features.slice(0, 5).forEach((feature) => {
+      const div = document.createElement("div");
+      div.className = "suggestion";
+      div.textContent = feature.properties.name + ", " + feature.properties.country;
+      div.onclick = () => {
+        input.value = feature.properties.name;
+        input.dataset.lat = feature.geometry.coordinates[1];
+        input.dataset.lon = feature.geometry.coordinates[0];
+        suggestionBox.innerHTML = "";
+        saveSearch(input.value);
+      };
+      suggestionBox.appendChild(div);
+    });
+  });
+}
+
+enableAutocomplete("searchBox", "searchSuggestions");
+enableAutocomplete("start", "startSuggestions");
+enableAutocomplete("end", "endSuggestions");
+
+// 📌 Search Place
+function searchPlace() {
+  const input = document.getElementById("searchBox");
+  const lat = input.dataset.lat;
+  const lon = input.dataset.lon;
+  if (!lat || !lon) return alert("Please select a place from suggestions.");
+  if (fakeMarker) map.removeLayer(fakeMarker);
+
+  const coords = [parseFloat(lat), parseFloat(lon)];
+  fakeMarker = L.marker(coords, {
+    icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red.png' })
+  }).addTo(map);
+  map.setView(coords, 15);
+  fetchWeather(coords[0], coords[1]);
+  saveSearch(input.value);
+}
+
+// 🛣️ Directions
+function getDirections() {
+  const startInput = document.getElementById("start");
+  const endInput = document.getElementById("end");
+
+  let startCoords, endCoords;
+
+  if (startInput.value.toLowerCase() === "my location") {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      startCoords = [pos.coords.latitude, pos.coords.longitude];
+      buildRoute(startCoords, getCoords(endInput));
+      fetchWeather(...startCoords);
+    });
+  } else {
+    if (!startInput.dataset.lat || !endInput.dataset.lat) return alert("Select both places from suggestions.");
+    startCoords = getCoords(startInput);
+    endCoords = getCoords(endInput);
+    buildRoute(startCoords, endCoords);
+    fetchWeather(...endCoords);
+  }
+}
+
+function buildRoute(startCoords, endCoords) {
+  if (routingControl) map.removeControl(routingControl);
+
+  routingControl = L.Routing.control({
+    waypoints: [L.latLng(...startCoords), L.latLng(...endCoords)],
+    lineOptions: { styles: [{ color: "#1976d2", weight: 5 }] },
+    show: false,
+    createMarker: (i, wp) => {
+      return L.marker(wp.latLng, {
+        icon: L.icon({
+          iconUrl: i === 0 ? "assets/live-location.svg" : "https://maps.gstatic.com/mapfiles/ms2/micons/red.png",
+          iconSize: [32, 32]
+        })
+      });
+    }
+  })
+    .addTo(map)
+    .on("routesfound", function (e) {
+      const route = e.routes[0];
+      const summary = route.summary;
+      document.getElementById("routeSummary").innerHTML =
+        `<p><strong>Distance:</strong> ${(summary.totalDistance / 1000).toFixed(2)} km<br><strong>Time:</strong> ${(summary.totalTime / 60).toFixed(1)} min</p>`;
+    });
+}
+
+function getCoords(input) {
+  return [parseFloat(input.dataset.lat), parseFloat(input.dataset.lon)];
+}
+
+// 📑 Panels
+document.getElementById("direction-toggle").onclick = () => togglePanel("direction-panel");
+document.getElementById("history-toggle").onclick = () => togglePanel("history-panel");
 
 function togglePanel(id) {
   const panel = document.getElementById(id);
@@ -29,120 +162,61 @@ function hidePanel(id) {
   document.getElementById(id).style.display = "none";
 }
 
-// Autocomplete for any input
-function enableAutocomplete(inputId, suggestionId) {
-  const input = document.getElementById(inputId);
-  const box = document.getElementById(suggestionId);
-
-  input.addEventListener("input", () => {
-    const query = input.value.trim();
-    if (!query) return box.innerHTML = "";
-
-    L.esri.Geocoding.geocode().text(query).language("en").run((err, res) => {
-      if (err || !res.results.length) return;
-      box.innerHTML = "";
-      res.results.forEach(result => {
-        const div = document.createElement("div");
-        div.className = "suggestion";
-        div.textContent = result.text;
-        div.onclick = () => {
-          input.value = result.text;
-          box.innerHTML = "";
-        };
-        box.appendChild(div);
-      });
-    });
-  });
-}
-enableAutocomplete("searchBox", "searchSuggestions");
-enableAutocomplete("start", "startSuggestions");
-enableAutocomplete("end", "endSuggestions");
-
-// Search and place marker
-function searchPlace() {
-  const query = document.getElementById("searchBox").value.trim();
-  if (!query) return;
-  L.esri.Geocoding.geocode().text(query).language("en").run((err, res) => {
-    if (res.results.length === 0) return;
-    const latlng = res.results[0].latlng;
-    if (fakeMarker) map.removeLayer(fakeMarker);
-    fakeMarker = L.marker(latlng, {
-      icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red.png' })
-    }).addTo(map);
-    map.setView(latlng, 14);
-  });
-}
-
-// Directions with start & end
-function getDirections() {
-  const startInput = document.getElementById("start").value.trim();
-  const endInput = document.getElementById("end").value.trim();
-  if (!startInput || !endInput) return;
-
-  if (routingControl) map.removeControl(routingControl);
-
-  function geocodePlace(place, callback) {
-    if (place.toLowerCase() === "my location" || place.toLowerCase() === "current location") {
-      navigator.geolocation.getCurrentPosition(
-        pos => callback(null, { latlng: L.latLng(pos.coords.latitude, pos.coords.longitude) }),
-        () => callback("Location permission denied", null)
-      );
-    } else {
-      L.esri.Geocoding.geocode().text(place).language("en").run((err, res) => {
-        if (err || !res.results.length) return callback("Not found", null);
-        callback(null, res.results[0]);
-      });
-    }
+// 📜 Search History
+function saveSearch(query) {
+  let history = JSON.parse(localStorage.getItem("searchHistory") || "[]");
+  if (!history.includes(query)) {
+    history.unshift(query);
+    if (history.length > 10) history.pop();
+    localStorage.setItem("searchHistory", JSON.stringify(history));
+    renderHistory();
   }
-
-  geocodePlace(startInput, (err1, startRes) => {
-    if (err1 || !startRes) return;
-    geocodePlace(endInput, (err2, endRes) => {
-      if (err2 || !endRes) return;
-
-      routingControl = L.Routing.control({
-        waypoints: [startRes.latlng, endRes.latlng],
-        routeWhileDragging: false,
-        createMarker: (i, wp) => {
-          return L.marker(wp.latLng, {
-            icon: L.icon({
-              iconUrl: i === 0
-                ? "assets/live-location.svg"
-                : "https://maps.gstatic.com/mapfiles/ms2/micons/red.png",
-              iconSize: [32, 32]
-            })
-          });
-        }
-      }).addTo(map);
-
-      map.setView(startRes.latlng, 12);
-    });
+}
+function renderHistory() {
+  const list = document.getElementById("historyList");
+  let history = JSON.parse(localStorage.getItem("searchHistory") || "[]");
+  list.innerHTML = "";
+  history.forEach((q) => {
+    const li = document.createElement("li");
+    li.textContent = q;
+    li.onclick = () => {
+      document.getElementById("searchBox").value = q;
+      document.getElementById("searchBox").dispatchEvent(new Event("input"));
+    };
+    list.appendChild(li);
   });
 }
+renderHistory();
 
-// Show current live marker
-function showLiveLocation(position) {
-  const coords = [position.coords.latitude, position.coords.longitude];
-  if (liveMarker) map.removeLayer(liveMarker);
+// 🚦 Traffic Toggle
+document.getElementById("traffic-toggle").onclick = () => {
+  if (!trafficLayer) {
+    trafficLayer = L.tileLayer("https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", {
+      attribution: "Traffic View",
+      maxZoom: 20
+    }).addTo(map);
+  } else {
+    map.hasLayer(trafficLayer) ? map.removeLayer(trafficLayer) : map.addLayer(trafficLayer);
+  }
+};
 
-  liveMarker = L.marker(coords, {
-    icon: L.icon({ iconUrl: "assets/live-location.svg", iconSize: [32, 32] })
-  }).addTo(map);
-  map.setView(coords, 16);
+// ⛅ Weather Toggle
+document.getElementById("weather-toggle").onclick = () => {
+  const box = document.getElementById("weather-box");
+  box.style.display = box.style.display === "block" ? "none" : "block";
+};
 
-  // Begin "walking" trail
-  if (walkPath) map.removeLayer(walkPath);
-  walkPath = L.polyline([coords], { color: 'blue' }).addTo(map);
-
-  let trail = [coords];
-  const watchId = navigator.geolocation.watchPosition(pos => {
-    const newCoords = [pos.coords.latitude, pos.coords.longitude];
-    trail.push(newCoords);
-    walkPath.setLatLngs(trail);
-    liveMarker.setLatLng(newCoords);
-    map.panTo(newCoords);
-  }, null, { enableHighAccuracy: true });
-
-  // Stop tracking after 5 mins
-  setTimeout(() => navigator.geolocation.clearWatch(watchId), 5 * 60 * 1000);
+// 🌦️ Fetch Weather
+async function fetchWeather(lat, lon) {
+  const apiKey = "71aec132cf2764d6ea577d3616629a9b"; // <-- Replace with real key
+  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  document.getElementById("weatherTemp").innerText = `${Math.round(data.main.temp)}°C`;
+  document.getElementById("weatherCondition").innerText = data.weather[0].description;
+  document.getElementById("weatherDetails").innerHTML = `
+    <p>Humidity: ${data.main.humidity}%<br>
+    Wind: ${data.wind.speed} m/s<br>
+    Pressure: ${data.main.pressure} hPa</p>
+  `;
 }
