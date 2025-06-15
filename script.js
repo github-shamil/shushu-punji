@@ -94,13 +94,8 @@ function searchPlace() {
   const input = document.getElementById("searchBox");
   const lat = input.dataset.lat;
   const lon = input.dataset.lon;
-  if (!lat || !lon) return alert("Please select a place from suggestions.");
+  if (!lat || !lon) return alert("Please select a place.");
   if (fakeMarker) map.removeLayer(fakeMarker);
-
-     const res = await fetch(`https://photon.komoot.io/api/?q=${query}&lang=en`);
-    const data = await res.json();
-    if (data.features.length === 0) return alert("Place not found. Try again.");
-
 
   const coords = [parseFloat(lat), parseFloat(lon)];
   fakeMarker = L.marker(coords, {
